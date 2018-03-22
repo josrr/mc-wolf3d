@@ -1,0 +1,19 @@
+;;;; mc-wolf3d.asd
+
+(asdf:defsystem #:mc-wolf3d
+  :description "Pequeño motor raycasting"
+  :author "José Ronquillo Rivera <josrr@ymail.com>"
+  :license  "GPL Ver. 3"
+  :version "0.0.1"
+  :serial t
+  :depends-on (:mcclim
+               :mcclim-raster-image
+               :3d-vectors
+               :3d-matrices
+               :cl-colors
+               :local-time)
+  :components ((:file "package")
+               (:file "mapas")
+               (:file "texturas")
+               (:file "escenario")
+               (:file "mc-wolf3d")))
