@@ -30,7 +30,7 @@
 (defconstant +valmax+ 10000000.0)
 (declaim (inline divseg))
 (defun divseg (x y)
-  (declare (optimize (speed 3))
+  (declare (optimize (speed 3) (safety 1))
            (type single-float x y))
   (if (zerop y)
       10000.0
@@ -106,12 +106,12 @@
                                        :initial-contents (loop for y from *alto/2* to (1- *alto*)
                                                             collect (divseg *alto* (- (* 2.0 y) *alto*)))))
 
-(defun dibuja-piso (arreglo pos-x pos-y x y-fin dist-pared-perp lado pared-x rayo-dir-x rayo-dir-y mapa-x mapa-y textura-piso textura-techo)
+(defun dibuja-piso (arreglo pos-x pos-y x y-fin dist-pared-perp lado pared-x rayo-dir-x rayo-dir-y mapa-x mapa-y textura-piso textura-techo &optional textura-piso-2)
   (declare (optimize (speed 3) (safety 0))
            (type fixnum x y-fin)
            (type single-float pared-x rayo-dir-x rayo-dir-y dist-pared-perp pos-x pos-y mapa-x mapa-y)
-           (type (simple-array (unsigned-byte 32) *) arreglo textura-piso textura-techo))
-  ;;(when (zerop x) (log:info "pared-x:~F" pared-x))
+           (type (simple-array (unsigned-byte 32) *) arreglo textura-piso textura-techo)
+           (type (or null (simple-array (unsigned-byte 32) *)) textura-piso-2))
   (multiple-value-bind (piso-pared-x piso-pared-y) (if (eq :horizontal lado)
                                                        (values (if (plusp rayo-dir-x)
                                                                    mapa-x
@@ -124,14 +124,17 @@
     (declare (type single-float piso-pared-x piso-pared-y))
     (loop for y fixnum from (1+ (if (minusp y-fin) *alto-fix* y-fin)) below *alto-fix*
        for peso single-float = (divseg (aref *distancias* (- y *alto/2*)) dist-pared-perp)
-       for tex-x fixnum = (mod (the fixnum
-                                    (truncate (* 64.0 (+ (* peso (- piso-pared-x pos-x)) pos-x))))
-                               64)
-       and tex-y fixnum = (mod (the fixnum
-                                    (truncate (* 64.0 (+ (* peso (- piso-pared-y pos-y)) pos-y))))
-                               64)
+       for c-x single-float = (+ (* peso (- piso-pared-x pos-x)) pos-x)
+       and c-y single-float = (+ (* peso (- piso-pared-y pos-y)) pos-y)
+       for c-x-fix fixnum = (the fixnum (truncate c-x))
+       and c-y-fix fixnum = (the fixnum (truncate c-y))
+       for tex-x fixnum = (mod (the fixnum (truncate (* 64.0 c-x))) 64)
+       and tex-y fixnum = (mod (the fixnum (truncate (* 64.0 c-y))) 64)
        do (setf (aref arreglo y x)
-                (aref textura-piso tex-y tex-x)
+                (aref (if textura-piso-2
+                          (if (zerop (mod (+ c-x-fix c-y-fix) 2)) textura-piso-2 textura-piso)
+                          textura-techo)
+                      tex-y tex-x)
                 (aref arreglo (- *alto-fix* y) x)
                 (aref textura-techo tex-y tex-x)))))
 
@@ -259,7 +262,8 @@
                       (vx2 rayo-dir) (vy2 rayo-dir)
                       mapa-x-f mapa-y-f
                       (aref texturas 3)
-                      (aref texturas 6)))))
+                      (aref texturas 6)
+                      (aref texturas 4)))))
 
 (defgeneric regenera (escenario))
 
