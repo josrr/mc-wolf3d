@@ -45,7 +45,7 @@
    (plano-camara :initarg :plano-camara :accessor plano-camara :initform (vec2 0 0.66))
    (rayos-pares :accessor rayos-pares :initform t :type boolean)
    (vel-mov :accessor vel-mov :initform 0.25 :type single-float)
-   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 6.0 (/ pi 128.0)) 'single-float)) :type single-float)
+   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 4.0 (/ pi 128.0)) 'single-float)) :type single-float)
    (imagen :accessor imagen
            :initform (make-image :rgb (floor *ancho*) (floor *alto*)
                                  :two-dim-array))
@@ -63,7 +63,6 @@
             plano-camara (vxy (m* mat-rot (vxy__ plano-camara)))))))
 
 (defun mueve (frame &optional (dir 1))
-  ;;(log:info dir)
   (with-slots (mapa posición dirección vel-mov) frame
     (let* ((nueva-posicion (v+ posición (v* (* dir vel-mov) dirección)))
            (x-i (floor (vx2 nueva-posicion)))
