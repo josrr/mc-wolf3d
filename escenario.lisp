@@ -56,17 +56,24 @@
 
 (defgeneric rota (escenario &optional dir))
 (defmethod rota (escenario &optional (dir 1))
-  ;;(log:info dir)
-  (with-slots (dirección plano-camara vel-rot vel-mov) escenario
+  (declare (optimize (speed 3) (safety 0))
+           (type fixnum dir))
+  (with-slots (dirección plano-camara vel-rot) escenario
+    (declare (type single-float vel-rot))
     (let ((mat-rot (mrotation +vz+ (* dir vel-rot))))
       (setf dirección (vxy (m* mat-rot (vxy__ dirección)))
             plano-camara (vxy (m* mat-rot (vxy__ plano-camara)))))))
 
 (defun mueve (frame &optional (dir 1))
+  (declare (optimize (speed 3) (safety 0))
+           (type fixnum dir))
   (with-slots (mapa posición dirección vel-mov) frame
+    (declare (type single-float vel-mov)
+             (type (simple-array fixnum (24 24)) mapa))
     (let* ((nueva-posicion (v+ posición (v* (* dir vel-mov) dirección)))
-           (x-i (floor (vx2 nueva-posicion)))
-           (y-i (floor (vy2 nueva-posicion))))
+           (x-i (truncate (vx2 nueva-posicion)))
+           (y-i (truncate (vy2 nueva-posicion))))
+      (declare (type fixnum x-i y-i))
       (when (and (>= x-i 0) (< x-i (array-dimension mapa 1))
                  (>= y-i 0) (< y-i (array-dimension mapa 0))
                  (zerop (aref mapa x-i y-i)))
