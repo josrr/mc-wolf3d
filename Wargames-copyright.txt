@@ -1,0 +1,13 @@
+This package was debianized by Aurelien Jarno <aurel32@debian.org> on
+Mon,  7 Apr 2003 00:33:50 +0200.
+
+All the fonts were downloaded from http://www.dustismo.com
+
+Upstream Author: Dustin Norlander <dustin@dustismo.com>
+  
+
+Copyright (C) 2002-2003 Dustin Norlander
+
+You are free to distribute this software under the terms of the GNU General
+Public License.  On Debian systems, the complete text of the GNU General Public
+License can be found in /usr/share/common-licenses/GPL-2 file.

@@ -25,10 +25,18 @@
    (:default canvas)))
 
 (defmethod run-frame-top-level :before ((frame mc-wolf3d) &key &allow-other-keys)
-  (setf (pane-needs-redisplay (find-pane-named frame 'canvas)) :no-clear))
+  (let ((canvas (find-pane-named frame 'canvas)))
+    (setf (pane-needs-redisplay canvas) :no-clear
+          (stream-recording-p canvas) nil)))
+
+(defparameter *tipografia* nil)
+(defun carga-tipografia ()
+  (mcclim-truetype::register-all-ttf-fonts (find-port) #P"./")
+  (setf *tipografia* t))
 
 (defun wolf3d-main (&optional (mapa *mapa*))
   (escenario:inicia-hilos)
+  (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d
                                         :escenario (make-instance 'escenario
                                                                   :mapa (or mapa *mapa*)
@@ -126,11 +134,11 @@
 
 ;;;;; Presentación
 (defparameter *tipo-titulos* (make-text-style :serif :bold 14))
-(defparameter *tipo-normal* (make-text-style :serif :roman 12))
+(defparameter *tipo-subtitulos* (make-text-style "Wargames" "Regular" 48))
+(defparameter *tipo-normal* (make-text-style "Edit Undo BRK" "Regular" 48))
 
 (defmethod display ((frame mc-wolf3d) (pane canvas-pane))
-  (declare (optimize (speed 3) (safety 0)))
-  ;;(log:info "display")
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (escenario tiempo tiempo-anterior periodo-cuadros) frame
     (declare (type single-float periodo-cuadros))
     (regenera escenario)
@@ -141,8 +149,9 @@
                                                                         tiempo-anterior))
                                   'single-float))
     (draw-design pane (make-image-design (imagen escenario)))
-    (draw-rectangle* pane 0 1003 256 980 :ink +black+)
-    (draw-text* pane (format nil "Cuadros por segundo: ~5,2F" (/ periodo-cuadros)) 10 990 :ink +white+)))
+    (let ((cadena (format nil "Cuadros por segundo: ~5,2F" (/ periodo-cuadros))))
+      (draw-rectangle* pane 0 1003 (the fixnum (+ 40 (the fixnum (text-size pane cadena :text-style *tipo-normal*)))) 900 :ink +black+)
+      (draw-text* pane cadena 10 990 :text-style *tipo-normal* :ink +white+))))
 
 
 #|(defmethod display ((frame mc-wolf3d) (pane info-pane))
