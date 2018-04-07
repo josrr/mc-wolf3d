@@ -47,11 +47,16 @@
   (redisplay-frame-pane *frame* 'canvas :force-p t)
   (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
 
-(define-mc-wolf3d-command (com-salir :name "salir" :menu t) ()
+(define-mc-wolf3d-command (com-terminar-juego :name "terminar-juego") ()
   (when (jugando *frame*)
     (clim-sys:destroy-process (jugando *frame*))
-    (setf (jugando *frame*) nil)
-    (escenario:termina-hilos))
+    (setf (jugando *frame*) nil)))
+
+(define-mc-wolf3d-command (com-salir :name "salir") ()
+  (when (jugando *frame*)
+    (clim-sys:destroy-process (jugando *frame*))
+    (setf (jugando *frame*) nil))
+  (escenario:termina-hilos)
   (frame-exit *application-frame*))
 
 (defun juega%% (frame)
@@ -63,13 +68,14 @@
        if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))
 
 (defun juega (frame)
-  (clim-sys:make-process (lambda ()
-                           (declare (optimize (speed 3) (safety 0) (debug 0)))
-                           (with-slots (modo-rot modo-mov escenario) frame
-                             (loop while t
-                                if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
-                                if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
-                                if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))))
+  (clim-sys:make-process
+   (lambda ()
+     (declare (optimize (speed 3) (safety 0) (debug 0)))
+     (with-slots (modo-rot modo-mov escenario) frame
+       (loop while t
+          if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
+          if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
+          if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
@@ -105,6 +111,7 @@
     (with-slots (escenario) *frame*
       (case (keyboard-event-key-name evento)
         ((:Q :|q|) (execute-frame-command *frame* `(com-salir)))
+        ((:X :|x|) (execute-frame-command *frame* `(com-terminar-juego)))
         ((:N :|n|) (execute-frame-command *frame* `(com-nuevo)))
         (:up (setf (slot-value *frame* 'modo-mov) :adelante))
         (:down (setf (slot-value *frame* 'modo-mov) :atras))
