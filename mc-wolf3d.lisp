@@ -29,6 +29,9 @@
     (setf (pane-needs-redisplay canvas) :no-clear
           (stream-recording-p canvas) nil)))
 
+(defmethod handle-repaint ((sheet canvas-pane) region)
+  (redisplay-frame-pane *frame* sheet))
+
 (defparameter *tipografia* nil)
 (defun carga-tipografia ()
   (mcclim-truetype::register-all-ttf-fonts (find-port) #P"./")
@@ -83,7 +86,8 @@
        (loop while t
           if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
           if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
-          if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))))
+          if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas)
+          else do (sleep 0.005))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
