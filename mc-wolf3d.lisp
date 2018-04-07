@@ -1,7 +1,6 @@
 ;;;; mc-wolf3d.lisp
 (in-package #:mc-wolf3d)
 
-
 (defparameter *frame* nil)
 
 (defclass canvas-pane (clim-stream-pane) ())
@@ -19,11 +18,14 @@
                              :record nil
                              :background +black+
                              :min-width *ancho*
-                             :min-height *alto*
+                             :min-height 1024
                              :display-time t
                              :display-function #'display)))
   (:layouts
    (:default canvas)))
+
+(defmethod run-frame-top-level :before ((frame mc-wolf3d) &key &allow-other-keys)
+  (setf (pane-needs-redisplay (find-pane-named frame 'canvas)) :no-clear))
 
 (defun wolf3d-main (&optional (mapa *mapa*))
   (escenario:inicia-hilos)
@@ -52,35 +54,29 @@
     (escenario:termina-hilos))
   (frame-exit *application-frame*))
 
-(defun juega (frame)
+(defun juega%% (frame)
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (modo-rot modo-mov escenario) frame
-    (labels ((redibuja ()
-               (redisplay-frame-pane frame 'canvas)
-               (setf (pane-needs-redisplay (find-pane-named frame 'canvas)) :no-clear)))
-      (loop with redibuja
-         while frame do
-           (sleep 0.0001)
-         if modo-mov do
-           (case modo-mov
-             (:arriba (mueve escenario) t)
-             (:abajo (mueve escenario -1) t))
-           (setf redibuja t) end
-         if modo-rot do
-           (case modo-rot
-             (:izquierda (rota escenario) t)
-             (:derecha (rota escenario -1) t))
-           (setf redibuja t) end
-         if redibuja do
-           (redibuja) end
-         do (setf redibuja nil)))))
+    (loop while t
+       if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
+       if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
+       if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))
+
+(defun juega (frame)
+  (clim-sys:make-process (lambda ()
+                           (declare (optimize (speed 3) (safety 0) (debug 0)))
+                           (with-slots (modo-rot modo-mov escenario) frame
+                             (loop while t
+                                if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
+                                if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
+                                if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
-  (let ((frame *application-frame*))
-    (unless (jugando frame)
-      (setf (jugando frame)
-            (clim-sys:make-process
-             #'(lambda () (juega frame)))))))
+  (when *frame*
+    (let ((frame *frame*))
+      (unless (jugando frame)
+        (setf (jugando frame) (juega frame))))))
 
 (define-mc-wolf3d-command (com-derecha :name "derecha") ()
   (rota (slot-value *frame* 'escenario) -1)
@@ -106,13 +102,14 @@
 
 (defmethod dispatch-event ((pane canvas-pane) (evento key-press-event))
   (when *frame*
-    (case (keyboard-event-key-name evento)
-      ((:Q :|q|) (execute-frame-command *frame* `(com-salir)))
-      ((:N :|n|) (execute-frame-command *frame* `(com-nuevo)))
-      (:up (setf (slot-value *frame* 'modo-mov) :arriba))
-      (:down (setf (slot-value *frame* 'modo-mov) :abajo))
-      (:right (setf (slot-value *frame* 'modo-rot) :derecha))
-      (:left (setf (slot-value *frame* 'modo-rot) :izquierda)))))
+    (with-slots (escenario) *frame*
+      (case (keyboard-event-key-name evento)
+        ((:Q :|q|) (execute-frame-command *frame* `(com-salir)))
+        ((:N :|n|) (execute-frame-command *frame* `(com-nuevo)))
+        (:up (setf (slot-value *frame* 'modo-mov) :adelante))
+        (:down (setf (slot-value *frame* 'modo-mov) :atras))
+        (:right (setf (slot-value *frame* 'modo-rot) :izquierda))
+        (:left (setf (slot-value *frame* 'modo-rot) :derecha))))))
 
 (defmethod dispatch-event ((pane canvas-pane) (evento key-release-event))
   (when *frame*
