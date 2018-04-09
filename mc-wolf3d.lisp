@@ -55,8 +55,7 @@
     (setf posición (vec 1.0 1.0)
           dirección (vec -1.0 0.0)
           plano-camara (vec 0 0.66)))
-  (redisplay-frame-pane *frame* 'canvas :force-p t)
-  (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
+  (redisplay-frame-pane *frame* 'canvas :force-p t))
 
 (define-mc-wolf3d-command (com-terminar-juego :name "terminar-juego") ()
   (when (jugando *frame*)
@@ -98,23 +97,19 @@
 
 (define-mc-wolf3d-command (com-derecha :name "derecha") ()
   (rota (slot-value *frame* 'escenario) -1)
-  (redisplay-frame-pane *frame* 'canvas)
-  (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
+  (redisplay-frame-pane *frame* 'canvas))
 
 (define-mc-wolf3d-command (com-izquierda :name "izquierda") ()
   (rota (slot-value *frame* 'escenario))
-  (redisplay-frame-pane *frame* 'canvas)
-  (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
+  (redisplay-frame-pane *frame* 'canvas))
 
 (define-mc-wolf3d-command (com-arriba :name "arriba") ()
   (mueve (slot-value *frame* 'escenario))
-  (redisplay-frame-pane *frame* 'canvas)
-  (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
+  (redisplay-frame-pane *frame* 'canvas))
 
 (define-mc-wolf3d-command (com-abajo :name "abajo") ()
   (mueve (slot-value *frame* 'escenario) -1)
-  (redisplay-frame-pane *frame* 'canvas)
-  (setf (pane-needs-redisplay (find-pane-named *frame* 'canvas)) :no-clear))
+  (redisplay-frame-pane *frame* 'canvas))
 
 (defmethod frame-standard-input ((frame mc-wolf3d)) (find-pane-named frame 'canvas))
 

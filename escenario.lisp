@@ -82,25 +82,22 @@
 (proclaim '(ftype (function ((simple-array (unsigned-byte 32) *)
                              keyword
                              fixnum fixnum fixnum fixnum
-                             (unsigned-byte 32)
-                             &optional (simple-array (unsigned-byte 32) *) fixnum)
+                             (simple-array (unsigned-byte 32) *) fixnum)
                    null)
             dibuja-linea-vertical))
 
 (declaim (inline dibuja-linea-vertical borra-imagen aproxima-angulo dibuja-piso))
-(defun dibuja-linea-vertical (arreglo modo x y-ini y-fin largo-linea color &optional textura x-tex)
+(defun dibuja-linea-vertical (arreglo modo x y-ini y-fin largo-linea textura x-tex)
   (declare (optimize (speed 3) (safety 0))
            (type (simple-array (unsigned-byte 32) *) arreglo)
            (type (or null (simple-array (unsigned-byte 32) *)) textura)
            (type fixnum largo-linea x y-ini y-fin))
   (loop for y fixnum from y-ini below y-fin
-     for valor of-type (unsigned-byte 32) = (if textura
-                                                (aref textura
-                                                      (the fixnum
-                                                           (truncate (* 64 (+ y (* 1/2 (- largo-linea *alto*))))
-                                                                     largo-linea))
-                                                      x-tex)
-                                                color)
+     for valor of-type (unsigned-byte 32) = (aref textura
+                                                  (the fixnum
+                                                       (truncate (* 64 (+ y (* 1/2 (- largo-linea *alto*))))
+                                                                 largo-linea))
+                                                  x-tex)
      do (setf (aref arreglo y x) (if (eq :vertical modo)
                                      (logand (ash valor -1) 8355711)
                                      valor))))
@@ -256,11 +253,9 @@
                                   (if (minusp tmp) 0 tmp))
                                 (the fixnum (truncate y-fin))
                                 largo-linea
-                                (aref (the (simple-array (unsigned-byte 32)) (getf *colores* lado))
-                                      (aref mapa mapa-x mapa-y))
-                                (when texturas (aref texturas
-                                                     (1- (aref mapa mapa-x mapa-y))))
-                                (when texturas (truncate tex-x)))
+                                (aref texturas
+                                      (1- (aref mapa mapa-x mapa-y)))
+                                (truncate tex-x))
          (dibuja-piso (image-pixels imagen)
                       (vx2 posición) (vy2 posición)
                       x-fix (the fixnum (truncate y-fin))
@@ -281,9 +276,9 @@
        and i fixnum from 0
        do (bt:with-lock-held ((aref *bloqueos* i))
             (setf (aref *tareas* i)
-                  (funcall (lambda (x1)
+                  (funcall (lambda (x)
                              (lambda ()
-                               (genera-escenario x1 (+ x1 paso) imagen dirección posición plano-camara mapa texturas)))
+                               (genera-escenario x (+ x paso) imagen dirección posición plano-camara mapa texturas)))
                            x))
             (bt:condition-notify (aref *conds* i))))
     ;;(setf rayos-pares (if rayos-pares nil t))
