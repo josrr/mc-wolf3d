@@ -151,39 +151,3 @@
     (let ((cadena (format nil "Cuadros por segundo: ~5,2F" (/ periodo-cuadros))))
       (draw-rectangle* pane 0 1003 (the fixnum (+ 40 (the fixnum (text-size pane cadena :text-style *tipo-normal*)))) 900 :ink +black+)
       (draw-text* pane cadena 10 990 :text-style *tipo-normal* :ink +white+))))
-
-
-#|(defmethod display ((frame mc-wolf3d) (pane info-pane))
-(clear-output pane)
-(with-slots (dirección posición periodo-cuadros vel-mov vel-rot) frame
-  (format pane "~5,2F cuadros por segundo          velocidad[mov: ~5,2F, rot: ~5,2F]"
-          (/ periodo-cuadros)
-          vel-mov vel-rot)
-  (format pane "~%~%Posición: ~5,2F, ~5,2F                   dirección: ~5,2F"
-          (vx2 posición) (vy2 posición) (atan (vy2 dirección) (vx2 dirección)))))|#
-
-;;(add-gesture-name 'g-arriba :keyboard :up)
-;;(add-gesture-name 'g-abajo :keyboard :down)
-;;(add-gesture-name 'g-izquierda :keyboard :left)
-;;(add-gesture-name 'g-derecha :keyboard :right)
-;;(add-gesture-name 'g-restablece :keyboard #\r)
-;;(add-gesture-name 'g-salir :keyboard #\q)
-;; (delete-gesture-name 'g-salir)
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-arriba :command '(com-arriba))
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-abajo :command '(com-abajo))
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-izquierda :command '(com-izquierda))
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-derecha :command '(com-derecha))
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-salir :command '(com-salir))
-;;(add-keystroke-to-command-table 'mc-wolf3d 'g-restablece :command '(com-restablece-todo))
-;;(remove-keystroke-from-command-table 'mc-wolf3d 'g-arriba)
-
-;;(defmethod frame-query-io ((frame mc-wolf3d)) nil)
-
-;;(defmethod dispatch-event ((pane canvas-pane) (evento keyboard-event))
-  ;;(when *frame* (log:info "~S: ~S" evento (keyboard-event-key-name evento)))
-  ;;(call-next-method)
-;; )
-
-;;(defmethod dispatch-event ((pane canvas-pane) (evento pointer-motion-event))
-  ;;(log:info "(~S ~S)" (pointer-event-x evento) (pointer-event-y evento))
-;;)
