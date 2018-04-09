@@ -46,6 +46,7 @@
    (rayos-pares :accessor rayos-pares :initform t :type boolean)
    (vel-mov :accessor vel-mov :initform 0.25 :type single-float)
    (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 4.0 (/ pi 128.0)) 'single-float)) :type single-float)
+   (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
    (imagen :accessor imagen
            :initform (make-image :rgb (floor *ancho*) (floor *alto*)
                                  :two-dim-array))
@@ -182,14 +183,14 @@
   (setf *hilos* nil))
 
 (declaim (inline genera-escenario))
-(defun genera-escenario (x-ini x-fin imagen dirección posición plano-camara mapa texturas)
+(defun genera-escenario (x-ini x-fin imagen dirección posición plano-camara mapa texturas zbuffer)
   (declare (optimize (speed 3) (safety 0))
            (type single-float x-ini x-fin)
            (type (simple-array fixnum (24 24)) mapa)
-           (type (simple-array (simple-array (unsigned-byte 32))) texturas))
+           (type (simple-array (simple-array (unsigned-byte 32))) texturas)
+           (type (simple-array single-float) zbuffer))
   (loop with paso-x fixnum = 0 and paso-y fixnum = 0
      and lado-dist = (vec2 0 0) and lado keyword = :horizontal
-     ;;for x single-float from (if rayos-pares x-ini (1+ x-ini)) below x-fin by 2.0
      for x single-float from x-ini below x-fin by 1.0
      and mapa-x fixnum = (the fixnum (truncate (vx2 posición)))
      and mapa-y fixnum = (the fixnum (truncate (vy2 posición)))
@@ -224,7 +225,6 @@
                                            (vx2 rayo-dir))
                                    (divseg (+ mapa-y (- (vy2 posición)) (/ (- 1 paso-y) 2.0))
                                            (vy2 rayo-dir))))
-                                        ;(alto (truncate (divseg *alto* dist-pared-perp)))
               (pared-x (if (eq :horizontal lado)
                            (+ (vy2 posición) (* dist-pared-perp (vy2 rayo-dir)))
                            (+ (vx2 posición) (* dist-pared-perp (vx2 rayo-dir)))))
@@ -244,7 +244,6 @@
            (setf tex-x (- 63 tex-x)))
          (when (and (eq :vertical lado) (minusp (vy2 rayo-dir)))
            (setf tex-x (- 63 tex-x)))
-         ;;
          (dibuja-linea-vertical (image-pixels imagen)
                                 lado
                                 x-fix
@@ -256,6 +255,7 @@
                                 (aref texturas
                                       (1- (aref mapa mapa-x mapa-y)))
                                 (truncate tex-x))
+         (setf (aref zbuffer x-fix) dist-pared-perp)
          (dibuja-piso (image-pixels imagen)
                       (vx2 posición) (vy2 posición)
                       x-fix (the fixnum (truncate y-fin))
@@ -269,7 +269,7 @@
 (defgeneric regenera (escenario))
 
 (defmethod regenera ((escenario escenario))
-  (with-slots (imagen ancho dirección posición plano-camara mapa texturas) escenario
+  (with-slots (imagen ancho dirección posición plano-camara mapa texturas zbuffer) escenario
     ;;(borra-imagen (image-pixels imagen))
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
        for x single-float from 0.0 below ancho by paso
@@ -278,7 +278,9 @@
             (setf (aref *tareas* i)
                   (funcall (lambda (x)
                              (lambda ()
-                               (genera-escenario x (+ x paso) imagen dirección posición plano-camara mapa texturas)))
+                               (genera-escenario x (+ x paso) imagen dirección
+                                                 posición plano-camara
+                                                 mapa texturas zbuffer)))
                            x))
             (bt:condition-notify (aref *conds* i))))
     ;;(setf rayos-pares (if rayos-pares nil t))
