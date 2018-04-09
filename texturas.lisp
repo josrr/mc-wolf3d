@@ -31,3 +31,23 @@
                 :element-type 'simple-array
                 :initial-contents
                 (mapcar #'carga-archivo archivos))))
+
+
+;;; Sprites
+
+(defclass sprite ()
+  ((x :initform 0.0 :type single-float :accessor sprite-x :initarg :x)
+   (y :initform 0.0 :type single-float :accessor sprite-y :initarg :y)
+   (textura :initform 0 :type fixnum :accessor sprite-textura :initarg :textura)))
+
+(defparameter *sprites* '((1.5 1.5 8)
+                          (5.5 5.5 9)))
+
+(defun carga-sprites (&optional (sprites *sprites*))
+  (make-array (length sprites)
+              :element-type 'sprite
+              :initial-contents (mapcar (lambda (s)
+                                          (make-instance 'sprite
+                                                         :x (car s) :y (cadr s)
+                                                         :textura (caddr s)))
+                                        sprites)))

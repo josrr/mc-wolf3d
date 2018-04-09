@@ -14,6 +14,7 @@
            #:rota
            #:mueve
            #:carga-texturas
+           #:carga-sprites
            #:*mapa*
            #:*mapa-3*
            #:inicia-hilos

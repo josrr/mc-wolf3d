@@ -8,6 +8,7 @@
 
 (define-application-frame mc-wolf3d ()
   ((escenario :initarg :escenario :accessor escenario :initform (make-instance 'escenario) :type escenario)
+   (sprites :accessor sprites :initform (escenario:carga-sprites))
    (tiempo :accessor tiempo :initform (local-time:now))
    (tiempo-anterior :accessor tiempo-anterior :initform 0)
    (periodo-cuadros :accessor periodo-cuadros :initform 0.0 :type single-float)
