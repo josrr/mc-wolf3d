@@ -95,22 +95,6 @@
       (unless (jugando frame)
         (setf (jugando frame) (juega frame))))))
 
-(define-mc-wolf3d-command (com-derecha :name "derecha") ()
-  (rota (slot-value *frame* 'escenario) -1)
-  (redisplay-frame-pane *frame* 'canvas))
-
-(define-mc-wolf3d-command (com-izquierda :name "izquierda") ()
-  (rota (slot-value *frame* 'escenario))
-  (redisplay-frame-pane *frame* 'canvas))
-
-(define-mc-wolf3d-command (com-arriba :name "arriba") ()
-  (mueve (slot-value *frame* 'escenario))
-  (redisplay-frame-pane *frame* 'canvas))
-
-(define-mc-wolf3d-command (com-abajo :name "abajo") ()
-  (mueve (slot-value *frame* 'escenario) -1)
-  (redisplay-frame-pane *frame* 'canvas))
-
 (defmethod frame-standard-input ((frame mc-wolf3d)) (find-pane-named frame 'canvas))
 
 (defmethod dispatch-event ((pane canvas-pane) (evento key-press-event))
