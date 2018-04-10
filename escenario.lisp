@@ -262,15 +262,56 @@
                       dist-pared-perp lado pared-x
                       (vx2 rayo-dir) (vy2 rayo-dir)
                       mapa-x-f mapa-y-f
-                      (aref texturas 3)
-                      (aref texturas 6)
-                      (aref texturas 4)))))
+                      (aref texturas 14)
+                      (aref texturas 14)
+                      (aref texturas 14)))))
 
-(defgeneric regenera (escenario))
+(defgeneric regenera (escenario sprites))
 
-(defmethod regenera ((escenario escenario))
-  (with-slots (imagen ancho dirección posición plano-camara mapa texturas zbuffer) escenario
-    ;;(borra-imagen (image-pixels imagen))
+(declaim (inline sprites-ordena))
+(defun sprites-ordena (posición sprites)
+  (declare (optimize (speed 3))
+           (type (simple-array sprite) sprites))
+  (sort sprites #'< :key (lambda (s)
+                           (declare (optimize (speed 3)))
+                           (let ((x (- (vx2 posición) (the single-float (sprite-x s))))
+                                 (y (- (vy2 posición) (the single-float (sprite-y s)))))
+                             (declare (type single-float x y))
+                             (+ (* x x) (* y y))))))
+
+(defun sprites-dibuja (pixels posición ancho alto plano-camara dirección sprites zbuffer texturas)
+  (declare ;;(optimize (speed 3))
+   (type (simple-array sprite) sprites)
+   (type (simple-array (simple-array (unsigned-byte 32))) texturas)
+   (type single-float ancho alto))
+  (loop with cam-minv = (minv (mat (vx2 plano-camara) (vx2 dirección)
+                                   (vy2 plano-camara) (vy2 dirección)))
+     for s across sprites
+     for spos-trans = (m* cam-minv (v- (sprite-posición s) posición))
+     for sprite-screen-x fixnum = (truncate (* (/ ancho 2.0) (1+ (/ (vx2 spos-trans)
+                                                                    (vy2 spos-trans)))))
+     and sprite-alto fixnum  = (abs (truncate alto (vy2 spos-trans)))
+     for sprite-ancho fixnum = sprite-alto
+     for y-ini fixnum = (truncate (- alto sprite-alto) 2)
+     and y-fin fixnum = (truncate (+ alto sprite-alto) 2)
+     and x-ini fixnum = (truncate (- sprite-screen-x (/ sprite-ancho 2)))
+     and x-fin fixnum = (truncate (+ sprite-screen-x (/ sprite-ancho 2)))
+     do ;(log:info spos posición sprite-ancho sprite-alto)
+       (loop for x from (if (minusp x-ini) 0 x-ini) below (if (>= x-fin ancho) (1- ancho) x-fin)
+          for tex-x fixnum = (truncate (* (- x (+ (/ (- sprite-ancho) 2) sprite-screen-x))
+                                          (divseg 64.0 (coerce sprite-ancho 'single-float))))
+          if (and (plusp (vx2 spos-trans)) (plusp x) (< (vy2 spos-trans) (aref zbuffer x)))
+          do ;;(log:info tex-x)
+            (loop for y from (if (minusp y-ini) 0 y-ini) below (if (>= y-fin alto) (1- alto) y-fin)
+               for d fixnum = (truncate (+ y (/ (- sprite-alto alto) 2)))
+               for tex-y fixnum = (truncate (/ (* d 64) sprite-alto))
+               for color = (aref (aref texturas (sprite-textura s)) (if (> tex-y 63) 63 tex-y) tex-x)
+               if (/= 0 color) do ;(log:info tex-y)
+                 (setf (aref pixels y x)
+                       color)))))
+
+(defmethod regenera ((escenario escenario) (sprites array))
+  (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
        for x single-float from 0.0 below ancho by paso
        and i fixnum from 0
@@ -283,5 +324,5 @@
                                                  mapa texturas zbuffer)))
                            x))
             (bt:condition-notify (aref *conds* i))))
-    ;;(setf rayos-pares (if rayos-pares nil t))
-    ))
+    (sprites-ordena posición sprites)
+    (sprites-dibuja (image-pixels imagen) posición ancho alto plano-camara dirección sprites zbuffer texturas)))

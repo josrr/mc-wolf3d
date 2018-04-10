@@ -38,6 +38,7 @@
 (defclass sprite ()
   ((x :initform 0.0 :type single-float :accessor sprite-x :initarg :x)
    (y :initform 0.0 :type single-float :accessor sprite-y :initarg :y)
+   (posición :initform (vec2 0.0 0.0) :accessor sprite-posición :initarg :posición)
    (textura :initform 0 :type fixnum :accessor sprite-textura :initarg :textura)))
 
 (defparameter *sprites* '((1.5 1.5 8)
@@ -49,5 +50,6 @@
               :initial-contents (mapcar (lambda (s)
                                           (make-instance 'sprite
                                                          :x (car s) :y (cadr s)
+                                                         :posición (vec2 (car s) (cadr s))
                                                          :textura (caddr s)))
                                         sprites)))

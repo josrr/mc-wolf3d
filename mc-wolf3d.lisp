@@ -123,9 +123,9 @@
 
 (defmethod display ((frame mc-wolf3d) (pane canvas-pane))
   (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (with-slots (escenario tiempo tiempo-anterior periodo-cuadros) frame
+  (with-slots (escenario sprites tiempo tiempo-anterior periodo-cuadros) frame
     (declare (type single-float periodo-cuadros))
-    (regenera escenario)
+    (regenera escenario sprites)
     (setf tiempo-anterior tiempo
           tiempo (local-time:now)
           periodo-cuadros (coerce (the double-float
