@@ -75,8 +75,8 @@
            (x-i (truncate (vx2 nueva-posicion)))
            (y-i (truncate (vy2 nueva-posicion))))
       (declare (type fixnum x-i y-i))
-      (when (and (>= x-i 0) (< x-i (array-dimension mapa 1))
-                 (>= y-i 0) (< y-i (array-dimension mapa 0))
+      (when (and (> x-i 0) (< x-i (array-dimension mapa 1))
+                 (> y-i 0) (< y-i (array-dimension mapa 0))
                  (zerop (aref mapa x-i y-i)))
         (setf posición nueva-posicion)))))
 
@@ -321,7 +321,8 @@
                           color)))))
 
 (defmethod regenera ((escenario escenario) (sprites array))
-  (declare (optimize (speed 3) (safety 0)))
+  ;;(declare (optimize (speed 3) (safety 0)))
+  (declare (optimize (debug 3)))
   (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
        for x single-float from 0.0 below ancho by paso
@@ -338,5 +339,4 @@
       (loop until (every #'null *tareas*)
          do (bt:condition-wait *cond-fin* *bloqueo-fin*)))
     (sprites-ordena posición sprites)
-    (sprites-dibuja (image-pixels imagen) posición ancho alto plano-camara dirección sprites zbuffer texturas)
-    ))
+    (sprites-dibuja (image-pixels imagen) posición ancho alto plano-camara dirección sprites zbuffer texturas)))
