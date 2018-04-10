@@ -41,8 +41,13 @@
    (posición :initform (vec2 0.0 0.0) :accessor sprite-posición :initarg :posición)
    (textura :initform 0 :type fixnum :accessor sprite-textura :initarg :textura)))
 
-(defparameter *sprites* '((1.5 1.5 8)
-                          (5.5 5.5 9)))
+(defparameter *sprites* '((1.5 2.5 8)
+                          (2.5 1.5 8)
+                          (3.5 1.5 8)
+                          (1.5 1.5 9)
+                          (2.5 1.5 9)
+                          (3.5 1.5 9)
+                          (1.75 1.35 19)))
 
 (defun carga-sprites (&optional (sprites *sprites*))
   (make-array (length sprites)
