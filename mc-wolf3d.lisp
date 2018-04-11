@@ -31,6 +31,7 @@
           (stream-recording-p canvas) nil)))
 
 (defmethod handle-repaint ((sheet canvas-pane) region)
+  (window-clear sheet)
   (redisplay-frame-pane *frame* sheet))
 
 (defparameter *tipografia* nil)
@@ -132,7 +133,8 @@
                                        (local-time:timestamp-difference tiempo
                                                                         tiempo-anterior))
                                   'single-float))
-    (draw-design pane (make-image-design (imagen escenario)))
-    (let ((cadena (format nil "Cuadros por segundo: ~5,2F" (/ periodo-cuadros))))
+    (let ((desp (/ (- (bounding-rectangle-width (sheet-region pane)) *ancho*) 2.0)))
+      (draw-design pane (make-image-design (imagen escenario)) :x desp :y desp))
+    (let ((cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
       (draw-rectangle* pane 0 1003 (the fixnum (+ 40 (the fixnum (text-size pane cadena :text-style *tipo-normal*)))) 900 :ink +black+)
       (draw-text* pane cadena 10 990 :text-style *tipo-normal* :ink +white+))))
