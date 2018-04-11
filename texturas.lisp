@@ -47,7 +47,7 @@
                           (1.5 1.5 9)
                           (2.5 1.5 9)
                           (3.5 1.5 9)
-                          (6.5 7.5 10)
+                          (6.5 7.5 9)
                           (1.35 1.35 19)))
 
 (defun carga-sprites (&optional (sprites *sprites*))
