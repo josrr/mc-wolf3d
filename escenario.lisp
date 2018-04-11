@@ -299,6 +299,7 @@
      for s across sprites
      for s-x single-float = (- (the single-float (sprite-x s)) pos-x)
      and s-y single-float = (- (the single-float (sprite-y s)) pos-y)
+     and frontera of-type (simple-array fixnum) = (frontera s)
      for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
      and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
      for sprite-screen-x fixnum = (the fixnum (truncate (* (/ ancho 2.0) (1+ (divseg trans-x trans-y)))))
@@ -312,7 +313,8 @@
            for x-fix fixnum = (truncate x)
            for tex-x fixnum = (truncate (* (- x (+ (/ (- sprite-ancho) 2) sprite-screen-x))
                                            (divseg *tex-ancho* sprite-ancho)))
-           if (and (plusp trans-y)
+           if (and (>= tex-x (aref frontera 0)) (<= tex-x (aref frontera 2))
+                   (plusp trans-y)
                    (< trans-y (aref zbuffer x-fix))
                    (plusp x) (< x ancho))
            do (loop for y single-float from (if (minusp y-ini) 0 y-ini) below (if (>= y-fin alto) (1- alto) y-fin)
@@ -320,7 +322,8 @@
                  for d single-float = (+ y (/ (- sprite-alto alto) 2))
                  for tex-y fixnum = (truncate (divseg (* d *tex-alto-fix*) sprite-alto))
                  for color = (aref (aref texturas (sprite-textura s)) tex-y tex-x)
-                 if (/= 0 color)
+                 if (and (>= tex-y (aref frontera 1)) (<= tex-y (aref frontera 3))
+                         (/= 0 color))
                  do (setf (aref pixels y-fix x-fix)
                           color)))))
 

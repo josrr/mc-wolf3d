@@ -38,6 +38,7 @@
 (defclass sprite ()
   ((x :initform 0.0 :type single-float :accessor sprite-x :initarg :x)
    (y :initform 0.0 :type single-float :accessor sprite-y :initarg :y)
+   (frontera :initform  #(0 0 123 123):type (simple-array fixnum) :accessor frontera :initarg :frontera)
    (posición :initform (vec2 0.0 0.0) :accessor sprite-posición :initarg :posición)
    (textura :initform 0 :type fixnum :accessor sprite-textura :initarg :textura)))
 
@@ -48,14 +49,22 @@
                           (2.5 1.5 9)
                           (3.5 1.5 9)
                           (6.5 7.5 9)
-                          (1.35 1.35 19)))
+                          (1.35 1.35 19)
+                          (6.5 8.5 20)))
 
-(defun carga-sprites (&optional (sprites *sprites*))
+(defparameter *sprites-fronteras* '((8 . #(34 62 95 123))
+                                    (9 . #(45 0 85 21))))
+
+(defun carga-sprites (&optional (sprites *sprites*) (fronteras *sprites-fronteras*))
   (make-array (length sprites)
               :element-type 'sprite
               :initial-contents (mapcar (lambda (s)
-                                          (make-instance 'sprite
-                                                         :x (car s) :y (cadr s)
-                                                         :posición (vec2 (car s) (cadr s))
-                                                         :textura (caddr s)))
+                                          (let ((obj (make-instance 'sprite
+                                                                    :x (car s) :y (cadr s)
+                                                                    :posición (vec2 (car s) (cadr s))
+                                                                    :textura (caddr s))))
+                                            (when (and fronteras)
+                                              (let ((def (cdr (assoc (caddr s) fronteras))))
+                                                (setf (frontera obj) (if def def `#(0 0 ,(1- *tex-ancho-fix*) ,(1- *tex-alto-fix*))))))
+                                            obj))
                                         sprites)))
