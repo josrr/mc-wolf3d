@@ -1,9 +1,13 @@
 (in-package #:escenario)
 
-(declaim (type single-float *ancho* *alto*)
-         (type fixnum *alto/2* *alto-fix*))
-(defparameter *ancho* 1280.0)
-(defparameter *alto* 768.0)
+(declaim (type single-float *ancho* *alto* *tex-ancho* *tex-alto*)
+         (type fixnum *alto/2* *alto-fix* *tex-ancho-fix* *tex-alto-fix*))
+(defparameter *ancho* 1100.0)
+(defparameter *alto* 660.0)
+(defparameter *tex-ancho* 128.0)
+(defparameter *tex-alto* 128.0)
+(defparameter *tex-ancho-fix* (truncate *tex-ancho*))
+(defparameter *tex-alto-fix* (truncate *tex-alto*))
 (defparameter *alto-fix* (truncate *alto*))
 (defparameter *alto/2* (truncate *alto* 2))
 (defparameter *colores*
@@ -23,7 +27,7 @@
 (defun aproxima-angulo (angulo)
   (declare (optimize (speed 3) (safety 0))
            (type single-float angulo))
-  (let ((fraccion (coerce (/ pi 64.0) 'single-float)))
+  (let ((fraccion (coerce (/ pi *tex-ancho*) 'single-float)))
     (declare (type single-float fraccion))
     (* (the fixnum (truncate angulo fraccion)) fraccion)))
 
@@ -53,7 +57,7 @@
    (texturas :initarg :texturas
              :accessor texturas
              :initform nil
-             :type (simple-array (simple-array (unsigned-byte 32) (64 64)) *))))
+             :type (simple-array (simple-array (unsigned-byte 32) (*tex-ancho-fix* *tex-alto-fix*)) *))))
 
 (defgeneric rota (escenario &optional dir))
 (defmethod rota (escenario &optional (dir 1))
@@ -96,7 +100,7 @@
   (loop for y fixnum from y-ini below y-fin
      for valor of-type (unsigned-byte 32) = (aref textura
                                                   (the fixnum
-                                                       (truncate (* 64 (+ y (* 1/2 (- largo-linea *alto*))))
+                                                       (truncate (* *tex-alto* (+ y (* 0.5 (- largo-linea *alto*))))
                                                                  largo-linea))
                                                   x-tex)
      do (setf (aref arreglo y x) (if (eq :vertical modo)
@@ -132,8 +136,8 @@
        and c-y single-float = (+ (* peso (- piso-pared-y pos-y)) pos-y)
        for c-x-fix fixnum = (the fixnum (truncate c-x))
        and c-y-fix fixnum = (the fixnum (truncate c-y))
-       for tex-x fixnum = (mod (the fixnum (truncate (* 64.0 c-x))) 64)
-       and tex-y fixnum = (mod (the fixnum (truncate (* 64.0 c-y))) 64)
+       for tex-x fixnum = (mod (the fixnum (truncate (* *tex-ancho* c-x))) *tex-ancho-fix*)
+       and tex-y fixnum = (mod (the fixnum (truncate (* *tex-ancho* c-y))) *tex-alto-fix*)
        do (setf (aref arreglo y x)
                 (aref (if textura-piso-2
                           (if (zerop (mod (+ c-x-fix c-y-fix) 2)) textura-piso-2 textura-piso)
@@ -180,7 +184,6 @@
                                                  (setf (aref *tareas* i) nil)
                                                  (bt:with-lock-held (*bloqueo-fin*)
                                                    (when (every #'null *tareas*)
-                                                     ;;(log:info *tareas*)
                                                      (bt:condition-notify *cond-fin*))))))
                                         i))))))
 
@@ -235,7 +238,7 @@
                            (+ (vy2 posición) (* dist-pared-perp (vy2 rayo-dir)))
                            (+ (vx2 posición) (* dist-pared-perp (vx2 rayo-dir)))))
               (tex-x (truncate (decf pared-x (the fixnum (truncate pared-x)))
-                               1/64))
+                               (/ *tex-ancho*)))
               (largo-linea (truncate (divseg *alto* dist-pared-perp)))
               (y-fin (let ((tmp (/ (+ *alto* largo-linea) 2.0)))
                        (declare (type single-float tmp))
@@ -247,9 +250,9 @@
          (declare (type fixnum tex-x largo-linea x-fix)
                   (type single-float dist-pared-perp pared-x y-fin mapa-x-f mapa-y-f))
          (when (and (eq :horizontal lado) (plusp (vx2 rayo-dir)))
-           (setf tex-x (- 63 tex-x)))
+           (setf tex-x (- *tex-ancho-fix* tex-x 1)))
          (when (and (eq :vertical lado) (minusp (vy2 rayo-dir)))
-           (setf tex-x (- 63 tex-x)))
+           (setf tex-x (- *tex-ancho-fix* tex-x 1)))
          (dibuja-linea-vertical (image-pixels imagen)
                                 lado
                                 x-fix
@@ -260,7 +263,7 @@
                                 largo-linea
                                 (aref texturas
                                       (1- (aref mapa mapa-x mapa-y)))
-                                (truncate tex-x))
+                                tex-x)
          (setf (aref zbuffer x-fix) dist-pared-perp)
          (dibuja-piso (image-pixels imagen)
                       (vx2 posición) (vy2 posición)
@@ -308,23 +311,24 @@
      do (loop for x single-float from (if (minusp x-ini) 0 x-ini) below (if (>= x-fin ancho) (1- ancho) x-fin)
            for x-fix fixnum = (truncate x)
            for tex-x fixnum = (truncate (* (- x (+ (/ (- sprite-ancho) 2) sprite-screen-x))
-                                           (divseg 64.0 sprite-ancho)))
+                                           (divseg *tex-ancho* sprite-ancho)))
            if (and (plusp trans-y)
                    (< trans-y (aref zbuffer x-fix))
                    (plusp x) (< x ancho))
            do (loop for y single-float from (if (minusp y-ini) 0 y-ini) below (if (>= y-fin alto) (1- alto) y-fin)
                  for y-fix fixnum = (truncate y)
                  for d single-float = (+ y (/ (- sprite-alto alto) 2))
-                 for tex-y fixnum = (truncate (divseg (* d 64) sprite-alto))
+                 for tex-y fixnum = (truncate (divseg (* d *tex-alto-fix*) sprite-alto))
                  for color = (aref (aref texturas (sprite-textura s)) tex-y tex-x)
                  if (/= 0 color)
                  do (setf (aref pixels y-fix x-fix)
                           color)))))
 
 (defmethod regenera ((escenario escenario) (sprites array))
-  ;;(declare (optimize (speed 3) (safety 0)))
-  (declare (optimize (debug 3)))
+  (declare (optimize (speed 3) (safety 0)))
+  ;;(declare (optimize (debug 3)))
   (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
+    (declare (type single-float ancho))
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
        for x single-float from 0.0 below ancho by paso
        and i fixnum from 0
