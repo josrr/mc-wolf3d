@@ -93,7 +93,7 @@
 
 (declaim (inline dibuja-linea-vertical borra-imagen aproxima-angulo dibuja-piso))
 (defun dibuja-linea-vertical (arreglo modo x y-ini y-fin largo-linea textura x-tex)
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array (unsigned-byte 32) *) arreglo)
            (type (or null (simple-array (unsigned-byte 32) *)) textura)
            (type fixnum largo-linea x y-ini y-fin))
@@ -115,7 +115,7 @@
                                                             collect (divseg *alto* (- (* 2.0 y) *alto*)))))
 
 (defun dibuja-piso (arreglo pos-x pos-y x y-fin dist-pared-perp lado pared-x rayo-dir-x rayo-dir-y mapa-x mapa-y textura-piso textura-techo &optional textura-piso-2)
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type fixnum x y-fin)
            (type single-float pared-x rayo-dir-x rayo-dir-y dist-pared-perp pos-x pos-y mapa-x mapa-y)
            (type (simple-array (unsigned-byte 32) *) arreglo textura-piso textura-techo)
@@ -147,7 +147,7 @@
                 (aref textura-techo tex-y tex-x)))))
 
 (defun borra-imagen (arreglo)
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array (unsigned-byte 32) (768 1280)) arreglo))
   (loop for y from 0 below (array-dimension arreglo 0)
      do (loop for x from 0 below (array-dimension arreglo 1)
@@ -192,9 +192,10 @@
   (setf *hilos* nil))
 
 (declaim (inline genera-escenario))
-(defun genera-escenario (x-ini x-fin imagen dirección posición plano-camara mapa texturas zbuffer)
-  (declare (optimize (speed 3) (safety 0))
+(defun genera-escenario (x-ini x-fin pixels dirección posición plano-camara mapa texturas zbuffer)
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type single-float x-ini x-fin)
+           (type (simple-array (unsigned-byte 32) *) pixels)
            (type (simple-array fixnum (24 24)) mapa)
            (type (simple-array (simple-array (unsigned-byte 32))) texturas)
            (type (simple-array single-float) zbuffer))
@@ -253,9 +254,7 @@
            (setf tex-x (- *tex-ancho-fix* tex-x 1)))
          (when (and (eq :vertical lado) (minusp (vy2 rayo-dir)))
            (setf tex-x (- *tex-ancho-fix* tex-x 1)))
-         (dibuja-linea-vertical (image-pixels imagen)
-                                lado
-                                x-fix
+         (dibuja-linea-vertical pixels lado x-fix
                                 (let ((tmp (truncate (- *alto* largo-linea) 2)))
                                   (declare (type fixnum tmp))
                                   (if (minusp tmp) 0 tmp))
@@ -265,7 +264,7 @@
                                       (1- (aref mapa mapa-x mapa-y)))
                                 tex-x)
          (setf (aref zbuffer x-fix) dist-pared-perp)
-         (dibuja-piso (image-pixels imagen)
+         (dibuja-piso pixels
                       (vx2 posición) (vy2 posición)
                       x-fix (the fixnum (truncate y-fin))
                       dist-pared-perp lado pared-x
@@ -279,7 +278,7 @@
 
 (declaim (inline sprites-ordena))
 (defun sprites-ordena (posición sprites)
-  (declare (optimize (speed 3))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array sprite) sprites))
   (sort sprites #'> :key (lambda (s)
                            (declare (optimize (speed 3)))
@@ -289,7 +288,7 @@
                              (+ (* x x) (* y y))))))
 
 (defun sprites-dibuja (pixels x-inicial ancho-franja ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
-  (declare (optimize (speed 3) (safety 0) (debug 1))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array (unsigned-byte 32) *) pixels)
            (type (simple-array sprite) sprites)
            (type (simple-array single-float) zbuffer)
@@ -335,22 +334,22 @@
 ;;(ash (+ (logand a #xfEfEfE) (logand color #xfEfEfE)) -1)
 
 (defmethod regenera ((escenario escenario) (sprites array))
-  (declare (optimize (speed 3) (safety 0)))
-  ;;(declare (optimize (debug 3)))
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
     (declare (type single-float ancho))
     (sprites-ordena posición sprites)
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
+       and pixels = (image-pixels imagen)
        for x single-float from 0.0 below ancho by paso
        and i fixnum from 0
        do (bt:with-lock-held ((aref *bloqueos* i))
             (setf (aref *tareas* i)
                   (let ((x x))
                     (lambda ()
-                      (genera-escenario x (+ x paso) imagen dirección
+                      (genera-escenario x (+ x paso) pixels dirección
                                         posición plano-camara
                                         mapa texturas zbuffer)
-                      (sprites-dibuja (image-pixels imagen)
+                      (sprites-dibuja pixels
                                       x paso
                                       ancho alto
                                       (vx2 posición)     (vy2 posición)
