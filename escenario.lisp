@@ -52,7 +52,7 @@
    (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 4.0 (/ pi 128.0)) 'single-float)) :type single-float)
    (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
    (imagen :accessor imagen
-           :initform (make-image :rgb (floor *ancho*) (floor *alto*)
+           :initform (make-image :rgb (floor *ancho*) *alto-fix*
                                  :two-dim-array))
    (texturas :initarg :texturas
              :accessor texturas
@@ -159,7 +159,7 @@
          (type (simple-array sb-thread:mutex) *bloqueos*)
          (type (simple-array sb-thread:waitqueue) *conds*))
 
-(defparameter *num-hilos* 32)
+(defparameter *num-hilos* 4)
 (defparameter *tareas* (make-array *num-hilos* :initial-element nil))
 (defparameter *conds* (make-array *num-hilos* :initial-contents (loop repeat *num-hilos* collect (bt:make-condition-variable))))
 (defparameter *bloqueos* (make-array *num-hilos* :initial-contents (loop repeat *num-hilos* collect (bt:make-lock))))
@@ -288,13 +288,13 @@
                              (declare (type single-float x y))
                              (+ (* x x) (* y y))))))
 
-(defun sprites-dibuja (pixels ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
+(defun sprites-dibuja (pixels x-inicial ancho-franja ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
+  (declare (optimize (speed 3) (safety 0) (debug 1))
            (type (simple-array (unsigned-byte 32) *) pixels)
            (type (simple-array sprite) sprites)
            (type (simple-array single-float) zbuffer)
            (type (simple-array (simple-array (unsigned-byte 32))) texturas)
-           (type single-float ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y))
+           (type single-float x-inicial ancho-franja ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y))
   (loop with inv-det single-float = (/ (- (* plcam-x dir-y) (* dir-x plcam-y)))
      for s across sprites
      for s-x single-float = (- (the single-float (sprite-x s)) pos-x)
@@ -309,7 +309,8 @@
      and y-fin single-float = (/ (+ alto sprite-alto) 2)
      and x-ini single-float = (- sprite-screen-x (/ sprite-ancho 2))
      and x-fin single-float = (+ sprite-screen-x (/ sprite-ancho 2))
-     do (loop for x single-float from (if (minusp x-ini) 0 x-ini) below (if (>= x-fin ancho) (1- ancho) x-fin)
+     do (loop for x single-float from (if (< x-ini x-inicial) x-inicial x-ini) below (let ((x-max (+ x-inicial ancho-franja)))
+                                                                                       (if (> x-fin x-max) x-max x-fin))
            for x-fix fixnum = (truncate x)
            for tex-x fixnum = (truncate (* (- x (+ (/ (- sprite-ancho) 2) sprite-screen-x))
                                            (divseg *tex-ancho* sprite-ancho)))
@@ -325,31 +326,38 @@
                  if (and (>= tex-y (aref frontera 1)) (<= tex-y (aref frontera 3))
                          (/= 0 color))
                  do (setf (aref pixels y-fix x-fix)
-                          color)))))
+                          (case color
+                            (#xFFE8AB
+                             (let ((a (aref pixels y-fix x-fix)))
+                               (ash (- (+ a color) (logand (logxor a color) #x010101)) -1)))
+                            (#xFFE8AC (logand (aref pixels y-fix x-fix) color))
+                            (t color)))))))
+;;(ash (+ (logand a #xfEfEfE) (logand color #xfEfEfE)) -1)
 
 (defmethod regenera ((escenario escenario) (sprites array))
   (declare (optimize (speed 3) (safety 0)))
   ;;(declare (optimize (debug 3)))
   (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
     (declare (type single-float ancho))
+    (sprites-ordena posición sprites)
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
        for x single-float from 0.0 below ancho by paso
        and i fixnum from 0
        do (bt:with-lock-held ((aref *bloqueos* i))
             (setf (aref *tareas* i)
-                  (funcall (let ((x x))
-                             (lambda ()
-                               (genera-escenario x (+ x paso) imagen dirección
-                                                 posición plano-camara
-                                                 mapa texturas zbuffer)))))
+                  (let ((x x))
+                    (lambda ()
+                      (genera-escenario x (+ x paso) imagen dirección
+                                        posición plano-camara
+                                        mapa texturas zbuffer)
+                      (sprites-dibuja (image-pixels imagen)
+                                      x paso
+                                      ancho alto
+                                      (vx2 posición)     (vy2 posición)
+                                      (vx2 plano-camara) (vy2 plano-camara)
+                                      (vx2 dirección)    (vy2 dirección)
+                                      sprites zbuffer texturas))))
             (bt:condition-notify (aref *conds* i))))
     (bt:with-lock-held (*bloqueo-fin*)
       (loop until (every #'null *tareas*)
-         do (bt:condition-wait *cond-fin* *bloqueo-fin*)))
-    (sprites-ordena posición sprites)
-    (sprites-dibuja (image-pixels imagen)
-                    ancho alto
-                    (vx2 posición)     (vy2 posición)
-                    (vx2 plano-camara) (vy2 plano-camara)
-                    (vx2 dirección)    (vy2 dirección)
-                    sprites zbuffer texturas)))
+         do (bt:condition-wait *cond-fin* *bloqueo-fin*)))))
