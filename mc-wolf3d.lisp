@@ -14,7 +14,9 @@
    (periodo-cuadros :accessor periodo-cuadros :initform 0.0 :type single-float)
    (modo-mov :accessor modo-mov :initform nil)
    (modo-rot :accessor modo-rot :initform nil)
-   (jugando :accessor jugando :initform nil))
+   (jugando :accessor jugando :initform nil)
+   (mezclador :accessor mezclador :initform nil)
+   (sonidos :accessor sonidos :initform nil))
   (:panes (canvas (make-pane 'canvas-pane
                              :record nil
                              :background +black+
@@ -41,19 +43,25 @@
 
 (defun wolf3d-main (&optional (mapa *mapa*))
   (escenario:inicia-hilos)
+  (mixalot:main-thread-init)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d
                                         :escenario (make-instance 'escenario
                                                                   :mapa (or mapa *mapa*)
                                                                   :texturas (carga-texturas))
-                                        :calling-frame nil))
+                                        :calling-frame nil)
+        (mezclador *frame*) (mixalot:create-mixer)
+        (sonidos *frame*) (list (mixalot-vorbis:make-vorbis-streamer "./sonidos/22331__black-boe__wind.ogg")))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
+                    (mixalot:destroy-mixer (mezclador *frame*))
+                    (setf (mezclador *frame*) nil
+                          *frame* nil)
                     (escenario:termina-hilos))
                   :name "mc-wolf3d-main"))
 
 (define-mc-wolf3d-command (com-restablece-todo :name "restablece") ()
-  (with-slots (posición dirección plano-camara) *frame*
+  (with-slots (posición dirección plano-camara) (escenario *frame*)
     (setf posición (vec 1.0 1.0)
           dirección (vec -1.0 0.0)
           plano-camara (vec 0 0.66)))
@@ -83,18 +91,26 @@
   (clim-sys:make-process
    (lambda ()
      (declare (optimize (speed 3) (safety 0) (debug 0)))
-     (with-slots (modo-rot modo-mov escenario) frame
+     (with-slots (modo-rot modo-mov escenario mezclador sonidos) frame
        (loop while t
           if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
           if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
           if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas)
-          else do (sleep 0.005))))))
+          else do
+            (when (< (- (mixalot:streamer-length (car sonidos) mezclador)
+                        (mixalot:streamer-position (car sonidos) mezclador))
+                     100000)
+              (mixalot:streamer-seek (car sonidos) mezclador 0))
+          ;;(cond ((= (mixalot:streamer-length (car sonidos) mezclador) (mixalot:streamer-position (car sonidos) mezclador)) (mixalot:mixer-add-streamer mezclador (car sonidos))))
+            (sleep 0.005)
+            )))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
   (when *frame*
     (let ((frame *frame*))
       (unless (jugando frame)
+        (mixalot:mixer-add-streamer (mezclador *frame*) (car (sonidos *frame*)))
         (setf (jugando frame) (juega frame))))))
 
 (defmethod frame-standard-input ((frame mc-wolf3d)) (find-pane-named frame 'canvas))
@@ -106,6 +122,7 @@
         ((:Q :|q|) (execute-frame-command *frame* `(com-salir)))
         ((:X :|x|) (execute-frame-command *frame* `(com-terminar-juego)))
         ((:N :|n|) (execute-frame-command *frame* `(com-nuevo)))
+        ((:R :|r|) (execute-frame-command *frame* `(com-restablece-todo)))
         (:up (setf (slot-value *frame* 'modo-mov) :adelante))
         (:down (setf (slot-value *frame* 'modo-mov) :atras))
         (:right (setf (slot-value *frame* 'modo-rot) :izquierda))

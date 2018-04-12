@@ -11,7 +11,9 @@
                :3d-vectors
                :3d-matrices
                :cl-colors
-               :local-time)
+               :local-time
+               :mixalot
+               :mixalot-vorbis)
   :components ((:file "package")
                (:file "mapas")
                (:file "texturas")

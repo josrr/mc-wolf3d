@@ -44,7 +44,7 @@
   ((ancho :initarg :ancho :accessor ancho :initform *ancho* :type single-float)
    (alto :initarg :ancho :accessor alto :initform *alto* :type single-float)
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
-   (posición :initarg :posicion :accessor posición :initform (vec2 2.0 2.0))
+   (posición :initarg :posicion :accessor posición :initform (vec2 1.0 1.0))
    (dirección :initarg :dirección :accessor dirección :initform (vec2 -1 0))
    (plano-camara :initarg :plano-camara :accessor plano-camara :initform (vec2 0 0.66))
    (rayos-pares :accessor rayos-pares :initform t :type boolean)
@@ -69,10 +69,10 @@
       (setf dirección (vxy (m* mat-rot (vxy__ dirección)))
             plano-camara (vxy (m* mat-rot (vxy__ plano-camara)))))))
 
-(defun mueve (frame &optional (dir 1))
+(defun mueve (escenario &optional (dir 1))
   (declare (optimize (speed 3) (safety 0))
            (type fixnum dir))
-  (with-slots (mapa posición dirección vel-mov) frame
+  (with-slots (mapa posición dirección vel-mov) escenario
     (declare (type single-float vel-mov)
              (type (simple-array fixnum (24 24)) mapa))
     (let* ((nueva-posicion (v+ posición (v* (* dir vel-mov) dirección)))
