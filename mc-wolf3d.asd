@@ -16,6 +16,7 @@
                :mixalot-vorbis)
   :components ((:file "package")
                (:file "texturas")
+               (:file "sprites")
                (:file "mapas")
                (:file "sonidos")
                (:file "escenario")

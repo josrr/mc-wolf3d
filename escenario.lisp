@@ -40,6 +40,26 @@
       10000.0
       (/ x y)))
 
+(defclass escenario ()
+  ((ancho :initarg :ancho :accessor ancho :initform *ancho* :type single-float)
+   (alto :initarg :ancho :accessor alto :initform *alto* :type single-float)
+   (posición :initarg :posicion :accessor posición :initform (vec2 1.0 1.0))
+   (dirección :initarg :dirección :accessor dirección :initform (vec2 -1 0))
+   (plano-camara :initarg :plano-camara :accessor plano-camara :initform (vec2 0 0.66))
+   (rayos-pares :accessor rayos-pares :initform t :type boolean)
+   (vel-mov :accessor vel-mov :initform 0.15 :type single-float)
+   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 3.0 (/ pi 128.0)) 'single-float)) :type single-float)
+   (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
+   (imagen :accessor imagen
+           :initform (make-image :rgb (floor *ancho*) *alto-fix*
+                                 :two-dim-array))
+   (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
+   (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
+   (texturas :initarg :texturas :accessor texturas :initform nil :type (simple-array (simple-array (unsigned-byte 32)
+                                                                                                   (*tex-ancho-fix* *tex-alto-fix*))
+                                                                                     *))
+   (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
+
 (defun crea-escenario (mapa sprites ruta-sonidos &optional (ruta-texturas #P"./pics/")
                                                    (sprites-fronteras *sprites-fronteras*)
                                                    (sprites-eventos *sprites-eventos*))
@@ -267,63 +287,6 @@
 
 (defgeneric regenera (escenario))
 
-(declaim (inline sprites-ordena))
-(defun sprites-ordena (posición sprites)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
-           (type (simple-array sprite) sprites))
-  (sort sprites #'> :key (lambda (s)
-                           (declare (optimize (speed 3) (safety 0) (debug 0)))
-                           (let ((x (- (vx2 posición) (the single-float (sprite-x s))))
-                                 (y (- (vy2 posición) (the single-float (sprite-y s)))))
-                             (declare (type single-float x y))
-                             (+ (* x x) (* y y))))))
-
-(defun sprites-dibuja (pixels x-inicial ancho-franja ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
-           (type (simple-array (unsigned-byte 32) *) pixels)
-           (type (simple-array sprite) sprites)
-           (type (simple-array single-float) zbuffer)
-           (type (simple-array (simple-array (unsigned-byte 32))) texturas)
-           (type single-float x-inicial ancho-franja ancho alto pos-x pos-y plcam-x plcam-y dir-x dir-y))
-  (loop with inv-det single-float = (/ (- (* plcam-x dir-y) (* dir-x plcam-y)))
-     for s across sprites
-     for s-x single-float = (- (the single-float (sprite-x s)) pos-x)
-     and s-y single-float = (- (the single-float (sprite-y s)) pos-y)
-     and frontera of-type (simple-array fixnum) = (sprite-frontera s)
-     for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
-     and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
-     for sprite-screen-x fixnum = (the fixnum (truncate (* (/ ancho 2.0) (1+ (divseg trans-x trans-y)))))
-     and sprite-alto single-float  = (abs (divseg alto trans-y))
-     for sprite-ancho single-float = sprite-alto
-     for y-ini single-float = (/ (- alto sprite-alto) 2)
-     and y-fin single-float = (/ (+ alto sprite-alto) 2)
-     and x-ini single-float = (- sprite-screen-x (/ sprite-ancho 2))
-     and x-fin single-float = (+ sprite-screen-x (/ sprite-ancho 2))
-     do (loop for x single-float from (if (< x-ini x-inicial) x-inicial x-ini) below (let ((x-max (+ x-inicial ancho-franja)))
-                                                                                       (if (> x-fin x-max) x-max x-fin))
-           for x-fix fixnum = (truncate x)
-           for tex-x fixnum = (truncate (* (- x (+ (/ (- sprite-ancho) 2) sprite-screen-x))
-                                           (divseg *tex-ancho* sprite-ancho)))
-           if (and (>= tex-x (aref frontera 0)) (<= tex-x (aref frontera 2))
-                   (plusp trans-y)
-                   (< trans-y (aref zbuffer x-fix))
-                   (plusp x) (< x ancho))
-           do (loop for y single-float from (if (minusp y-ini) 0 y-ini) below (if (>= y-fin alto) (1- alto) y-fin)
-                 for y-fix fixnum = (truncate y)
-                 for d single-float = (+ y (/ (- sprite-alto alto) 2))
-                 for tex-y fixnum = (truncate (divseg (* d *tex-alto-fix*) sprite-alto))
-                 for color = (aref (aref texturas (sprite-textura s)) tex-y tex-x)
-                 if (and (>= tex-y (aref frontera 1)) (<= tex-y (aref frontera 3))
-                         (/= 0 color))
-                 do (setf (aref pixels y-fix x-fix)
-                          (case color
-                            (#xFFE8AB
-                             (let ((a (aref pixels y-fix x-fix)))
-                               (ash (- (+ a color) (logand (logxor a color) #x010101)) -1)))
-                            (#xFFE8AC (logand (aref pixels y-fix x-fix) color))
-                            (t color)))))))
-;;(ash (+ (logand a #xfEfEfE) (logand color #xfEfEfE)) -1)
-
 (defmethod regenera ((escenario escenario))
   (declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (imagen ancho alto dirección posición plano-camara mapa sprites texturas zbuffer) escenario
@@ -351,3 +314,27 @@
     (bt:with-lock-held (*bloqueo-fin*)
       (loop until (every #'null *tareas*)
          do (bt:condition-wait *cond-fin* *bloqueo-fin*)))))
+
+(defgeneric escenario-realiza-eventos (escenario mezclador))
+
+(defmethod escenario-realiza-eventos ((escenario escenario) mezclador)
+  (declare (optimize (speed 3)))
+  (with-slots (sprites sonidos posición) escenario
+    (when sprites
+      (loop for sprite across sprites do
+         ;;(log:info sprite)
+           (loop for ev in (sprite-eventos sprite) do
+                (case (car ev)
+                  (:contacto (when (and (<= (abs (- (vx2 posición) (sprite-x sprite))) 0.35)
+                                        (<= (abs (- (vy2 posición) (sprite-y sprite))) 0.35))
+                               (case (cadr ev)
+                                 (:snd (let ((snd (aref sonidos (cddr ev))))
+                                         (if (mixalot:streamer-paused-p snd mezclador)
+                                             (progn
+                                               (mixalot:streamer-seek snd mezclador 0)
+                                               (mixalot:streamer-unpause snd mezclador))
+                                             (if  (member snd (mixalot:mixer-stream-list mezclador))
+                                                  (when (> (mixalot:streamer-position snd mezclador)
+                                                           22050)
+                                                    (mixalot:streamer-seek snd mezclador 0))
+                                                  (mixalot:mixer-add-streamer mezclador snd))))))))))))))
