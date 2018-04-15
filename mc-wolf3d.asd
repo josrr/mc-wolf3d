@@ -15,7 +15,8 @@
                :mixalot
                :mixalot-vorbis)
   :components ((:file "package")
-               (:file "mapas")
                (:file "texturas")
+               (:file "mapas")
+               (:file "sonidos")
                (:file "escenario")
                (:file "mc-wolf3d")))

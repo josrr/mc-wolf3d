@@ -8,7 +8,7 @@
 
 (define-application-frame mc-wolf3d ()
   ((escenario :initarg :escenario :accessor escenario :initform (make-instance 'escenario) :type escenario)
-   (sprites :accessor sprites :initform (escenario:carga-sprites))
+   ;;(sprites :accessor sprites :initform (escenario:carga-sprites))
    (tiempo :accessor tiempo :initform (local-time:now))
    (tiempo-anterior :accessor tiempo-anterior :initform 0)
    (periodo-cuadros :accessor periodo-cuadros :initform 0.0 :type single-float)
@@ -16,7 +16,8 @@
    (modo-rot :accessor modo-rot :initform nil)
    (jugando :accessor jugando :initform nil)
    (mezclador :accessor mezclador :initform nil)
-   (sonidos :accessor sonidos :initform nil))
+   ;;(sonidos :accessor sonidos :initform nil)
+   )
   (:panes (canvas (make-pane 'canvas-pane
                              :record nil
                              :background +black+
@@ -46,12 +47,11 @@
   (mixalot:main-thread-init)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d
-                                        :escenario (make-instance 'escenario
-                                                                  :mapa (or mapa *mapa*)
-                                                                  :texturas (carga-texturas))
-                                        :calling-frame nil)
-        (mezclador *frame*) (mixalot:create-mixer)
-        (sonidos *frame*) (list (mixalot-vorbis:make-vorbis-streamer "./sonidos/22331__black-boe__wind.ogg")))
+                                        :escenario (crea-escenario (or mapa *mapa*)
+                                                                   escenario::*sprites*
+                                                                   #P"./sonidos/"
+                                                                   #P"./pics/"))
+        (mezclador *frame*) (mixalot:create-mixer))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
                     (mixalot:destroy-mixer (mezclador *frame*))
@@ -91,27 +91,37 @@
   (clim-sys:make-process
    (lambda ()
      (declare (optimize (speed 3) (safety 0) (debug 0)))
-     (with-slots (modo-rot modo-mov escenario mezclador sonidos) frame
+     (with-slots (modo-rot modo-mov escenario mezclador) frame
        (loop while t
+          with sonidos of-type (simple-array t) = (sonidos escenario)
           if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
           if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
+          do (when sonidos
+               (loop for snd across (subseq sonidos 1)
+                  if (and (not (mixalot:streamer-paused-p snd mezclador))
+                          (member snd (mixalot:mixer-stream-list mezclador))
+                          (< (the fixnum (- (the fixnum (mixalot:streamer-length snd mezclador))
+                                            (the fixnum (mixalot:streamer-position snd mezclador))))
+                             5512))
+                  do (log:info "pausa: ~S" snd)
+                    (mixalot:streamer-pause snd mezclador)
+                    (mixalot:streamer-seek snd mezclador 0))
+               (when (< (- (the fixnum (mixalot:streamer-length (aref sonidos 0) mezclador))
+                           (the fixnum (mixalot:streamer-position (aref sonidos 0) mezclador)))
+                        5512)
+                 (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
+            (escenario-realiza-eventos escenario mezclador)
           if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas)
-          else do
-            (when (< (- (mixalot:streamer-length (car sonidos) mezclador)
-                        (mixalot:streamer-position (car sonidos) mezclador))
-                     100000)
-              (mixalot:streamer-seek (car sonidos) mezclador 0))
-          ;;(cond ((= (mixalot:streamer-length (car sonidos) mezclador) (mixalot:streamer-position (car sonidos) mezclador)) (mixalot:mixer-add-streamer mezclador (car sonidos))))
-            (sleep 0.005)
-            )))))
+          else do (sleep 0.005))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
   (when *frame*
-    (let ((frame *frame*))
-      (unless (jugando frame)
-        (mixalot:mixer-add-streamer (mezclador *frame*) (car (sonidos *frame*)))
-        (setf (jugando frame) (juega frame))))))
+    (with-slots (jugando mezclador escenario) *frame*
+      (unless jugando
+        (when (sonidos escenario)
+          (mixalot:mixer-add-streamer (mezclador *frame*) (aref (sonidos escenario) 0)))
+        (setf jugando (juega *frame*))))))
 
 (defmethod frame-standard-input ((frame mc-wolf3d)) (find-pane-named frame 'canvas))
 
@@ -141,9 +151,9 @@
 
 (defmethod display ((frame mc-wolf3d) (pane canvas-pane))
   (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (with-slots (escenario sprites tiempo tiempo-anterior periodo-cuadros) frame
+  (with-slots (escenario tiempo tiempo-anterior periodo-cuadros) frame
     (declare (type single-float periodo-cuadros))
-    (regenera escenario sprites)
+    (regenera escenario)
     (setf tiempo-anterior tiempo
           tiempo (local-time:now)
           periodo-cuadros (coerce (the double-float

@@ -40,24 +40,15 @@
       10000.0
       (/ x y)))
 
-(defclass escenario ()
-  ((ancho :initarg :ancho :accessor ancho :initform *ancho* :type single-float)
-   (alto :initarg :ancho :accessor alto :initform *alto* :type single-float)
-   (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
-   (posición :initarg :posicion :accessor posición :initform (vec2 1.0 1.0))
-   (dirección :initarg :dirección :accessor dirección :initform (vec2 -1 0))
-   (plano-camara :initarg :plano-camara :accessor plano-camara :initform (vec2 0 0.66))
-   (rayos-pares :accessor rayos-pares :initform t :type boolean)
-   (vel-mov :accessor vel-mov :initform 0.25 :type single-float)
-   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 4.0 (/ pi 128.0)) 'single-float)) :type single-float)
-   (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
-   (imagen :accessor imagen
-           :initform (make-image :rgb (floor *ancho*) *alto-fix*
-                                 :two-dim-array))
-   (texturas :initarg :texturas
-             :accessor texturas
-             :initform nil
-             :type (simple-array (simple-array (unsigned-byte 32) (*tex-ancho-fix* *tex-alto-fix*)) *))))
+(defun crea-escenario (mapa sprites ruta-sonidos &optional (ruta-texturas #P"./pics/")
+                                                   (sprites-fronteras *sprites-fronteras*)
+                                                   (sprites-eventos *sprites-eventos*))
+  (let ((obj (make-instance 'escenario
+                            :texturas (carga-texturas ruta-texturas)
+                            :mapa mapa
+                            :sonidos (carga-sonidos ruta-sonidos))))
+    (setf (sprites obj) (carga-sprites sprites sprites-fronteras sprites-eventos))
+    obj))
 
 (defgeneric rota (escenario &optional dir))
 (defmethod rota (escenario &optional (dir 1))
@@ -104,7 +95,7 @@
                                                                  largo-linea))
                                                   x-tex)
      do (setf (aref arreglo y x) (if (eq :vertical modo)
-                                     (logand (ash valor -1) 8355711)
+                                     (logand (ash valor -1) #x7F7F7F)
                                      valor))))
 ;;(aref arreglo y (if (oddp x) (1- x) (1+ x))) valor
 
@@ -243,8 +234,8 @@
               (largo-linea (truncate (divseg *alto* dist-pared-perp)))
               (y-fin (let ((tmp (/ (+ *alto* largo-linea) 2.0)))
                        (declare (type single-float tmp))
-                       (if (>= tmp *alto*)
-                           (1- *alto*) tmp)))
+                       (if (> tmp *alto*)
+                           *alto* tmp)))
               (x-fix (truncate x))
               (mapa-x-f (coerce mapa-x 'single-float))
               (mapa-y-f (coerce mapa-y 'single-float)))
@@ -274,14 +265,14 @@
                       (aref texturas 14)
                       (aref texturas 14)))))
 
-(defgeneric regenera (escenario sprites))
+(defgeneric regenera (escenario))
 
 (declaim (inline sprites-ordena))
 (defun sprites-ordena (posición sprites)
   (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array sprite) sprites))
   (sort sprites #'> :key (lambda (s)
-                           (declare (optimize (speed 3)))
+                           (declare (optimize (speed 3) (safety 0) (debug 0)))
                            (let ((x (- (vx2 posición) (the single-float (sprite-x s))))
                                  (y (- (vy2 posición) (the single-float (sprite-y s)))))
                              (declare (type single-float x y))
@@ -298,7 +289,7 @@
      for s across sprites
      for s-x single-float = (- (the single-float (sprite-x s)) pos-x)
      and s-y single-float = (- (the single-float (sprite-y s)) pos-y)
-     and frontera of-type (simple-array fixnum) = (frontera s)
+     and frontera of-type (simple-array fixnum) = (sprite-frontera s)
      for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
      and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
      for sprite-screen-x fixnum = (the fixnum (truncate (* (/ ancho 2.0) (1+ (divseg trans-x trans-y)))))
@@ -333,9 +324,9 @@
                             (t color)))))))
 ;;(ash (+ (logand a #xfEfEfE) (logand color #xfEfEfE)) -1)
 
-(defmethod regenera ((escenario escenario) (sprites array))
+(defmethod regenera ((escenario escenario))
   (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (with-slots (imagen ancho alto dirección posición plano-camara mapa texturas zbuffer) escenario
+  (with-slots (imagen ancho alto dirección posición plano-camara mapa sprites texturas zbuffer) escenario
     (declare (type single-float ancho))
     (sprites-ordena posición sprites)
     (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))

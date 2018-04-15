@@ -13,6 +13,10 @@
            #:imagen
            #:rota
            #:mueve
+           #:sonidos
+           #:sprites
+           #:escenario-realiza-eventos
+           #:crea-escenario
            #:carga-texturas
            #:carga-sprites
            #:*mapa*
