@@ -10,19 +10,6 @@
 (defparameter *tex-alto-fix* (truncate *tex-alto*))
 (defparameter *alto-fix* (truncate *alto*))
 (defparameter *alto/2* (truncate *alto* 2))
-(defparameter *colores*
-  (let ((colores `(,+yellow+ ,+skyblue+ ,+turquoise+ ,+slateblue1+ ,+khaki3+ ,+gold+ ,+gray44+ ,+sea-green+ ,+purple+)))
-    (list :horizontal (make-array 9 :element-type '(unsigned-byte 32)
-                                  :initial-contents (mapcar #'color-a-entero colores))
-          :vertical (make-array 9 :element-type '(unsigned-byte 32)
-                                :initial-contents
-                                (mapcar #'color-a-entero
-                                        `(,@(loop for c in colores collect
-                                                 (apply #'make-rgb-color
-                                                        (mapcar (lambda (v)
-                                                                  (declare (type single-float v))
-                                                                  (/ v 2.0))
-                                                                (multiple-value-list (color-rgb c)))))))))))
 
 (defun aproxima-angulo (angulo)
   (declare (optimize (speed 3) (safety 0))
@@ -315,26 +302,45 @@
       (loop until (every #'null *tareas*)
          do (bt:condition-wait *cond-fin* *bloqueo-fin*)))))
 
+(defclass accion ()
+  ((pars :initarg :pars :accessor accion-pars)))
+(defclass accion-sonido (accion)
+  ())
+(defclass evento ()
+  ((accion :initarg :accion :accessor evento-accion :type accion)))
+(defclass evento-contacto (evento) ())
+
+(defgeneric evento-reliza (escenario evento sprite mezclador))
+
+(defmethod evento-reliza ((escenario escenario) (evento evento-contacto)
+                          (sprite sprite) mezclador)
+  (declare (optimize (speed 3)))
+  (with-slots (sprites sonidos posición) escenario
+    (declare (type (simple-array sprite) sprites))
+    (when (and (<= (abs (the single-float (- (the single-float (vx2 posición))
+                                             (the single-float (sprite-x sprite)))))
+                   0.35)
+               (<= (abs (the single-float (- (the single-float (vy2 posición))
+                                             (the single-float (sprite-y sprite)))))
+                   0.35))
+      (let ((snd (aref sonidos (accion-pars (evento-accion evento)))))
+        (if (mixalot:streamer-paused-p snd mezclador)
+            (progn
+              (mixalot:streamer-seek snd mezclador 0)
+              (mixalot:streamer-unpause snd mezclador))
+            (if (member snd (mixalot:mixer-stream-list mezclador))
+                (when (> (mixalot:streamer-position snd mezclador)
+                         22050)
+                  (mixalot:streamer-seek snd mezclador 0))
+                (mixalot:mixer-add-streamer mezclador snd)))))))
+
 (defgeneric escenario-realiza-eventos (escenario mezclador))
 
 (defmethod escenario-realiza-eventos ((escenario escenario) mezclador)
   (declare (optimize (speed 3)))
-  (with-slots (sprites sonidos posición) escenario
+  (with-slots (sprites) escenario
+    (declare (type (simple-array sprite) sprites))
     (when sprites
       (loop for sprite across sprites do
-         ;;(log:info sprite)
            (loop for ev in (sprite-eventos sprite) do
-                (case (car ev)
-                  (:contacto (when (and (<= (abs (- (vx2 posición) (sprite-x sprite))) 0.35)
-                                        (<= (abs (- (vy2 posición) (sprite-y sprite))) 0.35))
-                               (case (cadr ev)
-                                 (:snd (let ((snd (aref sonidos (cddr ev))))
-                                         (if (mixalot:streamer-paused-p snd mezclador)
-                                             (progn
-                                               (mixalot:streamer-seek snd mezclador 0)
-                                               (mixalot:streamer-unpause snd mezclador))
-                                             (if  (member snd (mixalot:mixer-stream-list mezclador))
-                                                  (when (> (mixalot:streamer-position snd mezclador)
-                                                           22050)
-                                                    (mixalot:streamer-seek snd mezclador 0))
-                                                  (mixalot:mixer-add-streamer mezclador snd))))))))))))))
+                (evento-reliza escenario ev sprite mezclador))))))

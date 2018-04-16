@@ -26,8 +26,8 @@
 (defparameter *sprites-fronteras* '((8 . #(34 62 95 123))
                                     (9 . #(45 0 85 21))))
 
-(defparameter *sprites-eventos* '((21 . ((:contacto . (:snd . 2))))
-                                  (22 . ((:contacto . (:snd . 2))))))
+(defparameter *sprites-eventos* '((21 . ((:contacto . (:sonido . 2))))
+                                  (22 . ((:contacto . (:sonido . 2))))))
 
 
 (defclass sprite ()
@@ -41,21 +41,35 @@
 (defun carga-sprites (sprites fronteras eventos)
   (make-array (length sprites)
               :element-type 'sprite
-              :initial-contents (mapcar (lambda (s)
-                                          (let ((obj (make-instance 'sprite
-                                                                    :x (car s) :y (cadr s)
-                                                                    :posición (vec2 (car s) (cadr s))
-                                                                    :textura (caddr s))))
-                                            (when fronteras
-                                              (let ((def (cdr (assoc (caddr s) fronteras))))
-                                                (setf (sprite-frontera obj)
-                                                      (if def def `#(0 0 ,(1- *tex-ancho-fix*) ,(1- *tex-alto-fix*))))))
-                                            (when eventos
-                                              (let ((def (cdr (assoc (caddr s) eventos))))
-                                                (when def
-                                                  (setf (sprite-eventos obj) def))))
-                                            obj))
-                                        sprites)))
+              :initial-contents
+              (mapcar (lambda (s)
+                        (let ((obj (make-instance 'sprite
+                                                  :x (car s) :y (cadr s)
+                                                  :posición (vec2 (car s) (cadr s))
+                                                  :textura (caddr s))))
+                          (when fronteras
+                            (let ((def (cdr (assoc (caddr s) fronteras))))
+                              (setf (sprite-frontera obj)
+                                    (if def def `#(0 0 ,(1- *tex-ancho-fix*)
+                                                   ,(1- *tex-alto-fix*))))))
+                          (when eventos
+                            (let ((evs (cdr (assoc (caddr s) eventos))))
+                              (when evs
+                                (setf (sprite-eventos obj)
+                                      (mapcar (lambda (ev)
+                                                (make-instance
+                                                 (intern (concatenate 'string "EVENTO-"
+                                                                      (symbol-name (car ev)))
+                                                         'escenario)
+                                                 :accion (make-instance
+                                                          (intern (concatenate 'string
+                                                                               "ACCION-"
+                                                                               (symbol-name (cadr ev)))
+                                                                  'escenario)
+                                                          :pars (cddr ev))))
+                                              evs)))))
+                          obj))
+                      sprites)))
 
 
 (declaim (inline sprites-ordena))
