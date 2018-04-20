@@ -2,7 +2,7 @@
 
 (asdf:defsystem #:mc-wolf3d
   :description "Pequeño motor raycasting"
-  :author "José Ronquillo Rivera <josrr@ymail.com>"
+  :author "José Ronquillo Rivera <jose@rufina.link>"
   :license  "GPL Ver. 3"
   :version "0.0.1"
   :serial t
