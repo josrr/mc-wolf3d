@@ -7,7 +7,7 @@ Little raycasting game engine.
 ### Art by Alexis Ruiz Martínez
 
 ## License
-Copyright © 2018 [José Miguel Ronquillo Rivera](<jose@rufina.link>)
+Copyright © 2018 [José Miguel Ronquillo Rivera](mailto:<jose@rufina.link>)
 
 GNU General Public License version 3.
 
