@@ -270,9 +270,9 @@
                       dist-pared-perp lado pared-x
                       (vx2 rayo-dir) (vy2 rayo-dir)
                       mapa-x-f mapa-y-f
-                      (aref texturas 14)
-                      (aref texturas 14)
-                      (aref texturas 14)))))
+                      (aref texturas 3)
+                      (aref texturas 3)
+                      (aref texturas 3)))))
 
 (defgeneric regenera (escenario))
 
