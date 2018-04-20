@@ -1,9 +1,11 @@
 # mc-wolf3d
-### _Your Name <your.name@example.com>_
+### José Miguel Ronquillo Rivera <jose@rufina.link>
 
-This is a project to do ... something.
+Little raycasting game engine.
+
+![wolf3d01.png]()
 
 ## License
+GNU General Public License version 3.
 
-Specify license here
 
