@@ -8,16 +8,13 @@
 
 (define-application-frame mc-wolf3d ()
   ((escenario :initarg :escenario :accessor escenario :initform (make-instance 'escenario) :type escenario)
-   ;;(sprites :accessor sprites :initform (escenario:carga-sprites))
+   (mezclador :initarg :mezclador :accessor mezclador :initform (mixalot:create-mixer))
    (tiempo :accessor tiempo :initform (local-time:now))
    (tiempo-anterior :accessor tiempo-anterior :initform 0)
    (periodo-cuadros :accessor periodo-cuadros :initform 0.0 :type single-float)
    (modo-mov :accessor modo-mov :initform nil)
    (modo-rot :accessor modo-rot :initform nil)
-   (jugando :accessor jugando :initform nil)
-   (mezclador :accessor mezclador :initform nil)
-   ;;(sonidos :accessor sonidos :initform nil)
-   )
+   (jugando :accessor jugando :initform nil))
   (:panes (canvas (make-pane 'canvas-pane
                              :record nil
                              :background +black+
@@ -50,13 +47,11 @@
                                         :escenario (crea-escenario (or mapa *mapa*)
                                                                    escenario::*sprites*
                                                                    #P"./sonidos/"
-                                                                   #P"./pics/"))
-        (mezclador *frame*) (mixalot:create-mixer))
+                                                                   #P"./pics/")))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
                     (mixalot:destroy-mixer (mezclador *frame*))
-                    (setf (mezclador *frame*) nil
-                          *frame* nil)
+                    (setf *frame* nil)
                     (escenario:termina-hilos))
                   :name "mc-wolf3d-main"))
 
@@ -79,14 +74,6 @@
   (escenario:termina-hilos)
   (frame-exit *application-frame*))
 
-(defun juega%% (frame)
-  (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (with-slots (modo-rot modo-mov escenario) frame
-    (loop while t
-       if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
-       if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
-       if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas))))
-
 (defun juega (frame)
   (clim-sys:make-process
    (lambda ()
@@ -103,14 +90,14 @@
                           (< (the fixnum (- (the fixnum (mixalot:streamer-length snd mezclador))
                                             (the fixnum (mixalot:streamer-position snd mezclador))))
                              5512))
-                  do (log:info "pausa: ~S" snd)
+                  do ;;(log:info "pausa: ~S" snd)
                     (mixalot:streamer-pause snd mezclador)
                     (mixalot:streamer-seek snd mezclador 0))
                (when (< (- (the fixnum (mixalot:streamer-length (aref sonidos 0) mezclador))
                            (the fixnum (mixalot:streamer-position (aref sonidos 0) mezclador)))
                         5512)
                  (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
-            (escenario-realiza-eventos escenario mezclador)
+            (escenario-revisa-eventos escenario mezclador)
           if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas)
           else do (sleep 0.005))))))
 

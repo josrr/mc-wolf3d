@@ -15,7 +15,7 @@
            #:mueve
            #:sonidos
            #:sprites
-           #:escenario-realiza-eventos
+           #:escenario-revisa-eventos
            #:crea-escenario
            #:carga-texturas
            #:carga-sprites
