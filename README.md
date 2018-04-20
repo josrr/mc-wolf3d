@@ -8,6 +8,7 @@ Little raycasting game engine.
 
 ## License
 Copyright © 2018 [José Miguel Ronquillo Rivera](<jose@rufina.link>)
+
 GNU General Public License version 3.
 
 
