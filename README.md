@@ -1,9 +1,10 @@
 # mc-wolf3d
-### José Miguel Ronquillo Rivera <jose@rufina.link>
+### Code by José Miguel Ronquillo Rivera <jose@rufina.link>
+### Art by Alexis
 
 Little raycasting game engine.
 
-![wolf3d01.png]()
+![Screenshot](wolf3d01.png)
 
 ## License
 GNU General Public License version 3.
