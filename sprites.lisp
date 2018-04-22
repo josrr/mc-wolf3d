@@ -1,70 +1,67 @@
 (in-package #:escenario)
 
-(defparameter *sprites* '((1.5 22.5 9)
-                          (1.5 1.5 10)
-                          (1.5 2.5 10)
-                          (2.5 1.5 10)
-                          (3.5 1.5 10)
-                          (6.5 7.5 9)
-                          (4.5 1.5 10)
-                          (1.5 5.0 10)
-                          (1.5 5.75 9)
-                          (1.5 6.50 9)
-                          (1.5 7.25 10)
-                          (1.5 10.0 10)
-                          (1.5 9.50 9)
-                          (1.5 11.0 10)
-                          (1.5 11.75 10)
-                          (1.5 12.5 9)
-                          (6.5 10.5 9)))
+(defparameter *sprites-maestros* '((:portal-a
+                                    #(10 11 12 13 14) #(#(60 0 70 127)
+                                                        #(20 0 107 127)
+                                                        #(0 0 127 127)
+                                                        #(20 0 107 127)
+                                                        #(60 0 70 127))
+                                    ((:contacto . (:sonido . 2))))))
 
-(defparameter *sprites-fronteras* nil)
-;;(defparameter *sprites-fronteras* '((8 . #(34 62 95 123)) (9 . #(45 0 85 15))))
+(defparameter *sprites* '((:portal-a 5.0 5.0)
+                          (:portal-a 5.75 5.0)
+                          (:portal-a 6.5 5.0)))
 
-;;(defparameter *sprites-eventos* nil)
-(defparameter *sprites-eventos* '((10 . ((:contacto . (:sonido . 2))))
-                                  (9 . ((:contacto . (:sonido . 2))))))
+(defclass sprite-maestro ()
+  ((nombre :initform :obj-1 :type :keyword :initarg :nombre
+           :accessor sprite-nombre)
+   (texturas :initform #(0) :type (simple-array fixnum)
+             :accessor sprite-texturas :initarg :texturas)
+   (fronteras :initform  #((0 0 127 127)) :type (simple-array (simple-array fixnum (4)))
+              :accessor sprite-fronteras :initarg :fronteras)
+   (eventos :initform nil
+            :accessor sprite-eventos :initarg :eventos)))
 
-;;(defparameter *sprites-eventos* nil)
+(defun carga-sprites-maestros (definiciones-sprites)
+  (let ((sprites-ht (make-hash-table)))
+    (dolist (s definiciones-sprites)
+      (let ((obj (make-instance 'sprite-maestro
+                                :nombre (car s)
+                                :texturas (cadr s)
+                                :fronteras (or (caddr s)
+                                               `#(0 0 ,(1- *tex-ancho-fix*)
+                                                  ,(1- *tex-alto-fix*)))))
+            (eventos (cadddr s)))
+        (when eventos
+          (setf (sprite-eventos obj)
+                (mapcar (lambda (ev)
+                          (make-instance
+                           (intern (concatenate 'string "EVENTO-"
+                                                (symbol-name (car ev)))
+                                   'escenario)
+                           :accion (make-instance
+                                    (intern (concatenate 'string
+                                                         "ACCION-"
+                                                         (symbol-name (cadr ev)))
+                                            'escenario)
+                                    :pars (cddr ev))))
+                        eventos)))
+        (setf (gethash (car s) sprites-ht) obj)))
+    sprites-ht))
 
 (defclass sprite ()
   ((x :initform 0.0 :type single-float :accessor sprite-x :initarg :x)
    (y :initform 0.0 :type single-float :accessor sprite-y :initarg :y)
-   (frontera :initform  #(0 0 127 127):type (simple-vector 4) :accessor sprite-frontera :initarg :frontera)
-   (textura :initform 0 :type fixnum :accessor sprite-textura :initarg :textura)
-   (eventos :initform nil :accessor sprite-eventos :initarg :eventos)))
+   (sprite :initform nil :accessor sprite-maestro :initarg :sprite-maestro)))
 
-(defun carga-sprites (sprites fronteras eventos)
-  (make-array (length sprites)
+(defun crea-sprites (sprites-maestros definiciones-sprites)
+  (make-array (length definiciones-sprites)
               :element-type 'sprite
-              :initial-contents
-              (mapcar (lambda (s)
-                        (let ((obj (make-instance 'sprite
-                                                  :x (car s) :y (cadr s)
-                                                  :textura (caddr s))))
-                          (when fronteras
-                            (let ((def (cdr (assoc (caddr s) fronteras))))
-                              (setf (sprite-frontera obj)
-                                    (if def def `#(0 0 ,(1- *tex-ancho-fix*)
-                                                   ,(1- *tex-alto-fix*))))))
-                          (when eventos
-                            (let ((evs (cdr (assoc (caddr s) eventos))))
-                              (when evs
-                                (setf (sprite-eventos obj)
-                                      (mapcar (lambda (ev)
-                                                (make-instance
-                                                 (intern (concatenate 'string "EVENTO-"
-                                                                      (symbol-name (car ev)))
-                                                         'escenario)
-                                                 :accion (make-instance
-                                                          (intern (concatenate 'string
-                                                                               "ACCION-"
-                                                                               (symbol-name (cadr ev)))
-                                                                  'escenario)
-                                                          :pars (cddr ev))))
-                                              evs)))))
-                          obj))
-                      sprites)))
+              :initial-contents (mapcar (lambda (def)
+                                          (make-instance 'sprite
+                                                         :x (cadr def) :y (caddr def)
+                                                         :sprite-maestro (gethash (car def) sprites-maestros)))
+                                        definiciones-sprites) ))
 
 (declaim (inline sprites-ordena))
 (defun sprites-ordena (posición sprites)
@@ -89,7 +86,9 @@
   (let ((inv-det (/ (- (* plcam-x dir-y) (* dir-x plcam-y))))
         (alto/2 (/ alto 2.0)))
     (declare (type single-float inv-det alto/2))
-    (labels ((dibuja (s trans-x trans-y)
+    (labels ((dibuja (trans-x trans-y angulo sprite-texturas sprite-fronteras)
+               (declare (type (simple-array fixnum) sprite-texturas)
+                        (type (simple-array (simple-array fixnum (4))) sprite-fronteras))
                (let* ((sprite-screen-x (* (/ ancho 2.0) (1+ (divseg trans-x trans-y))))
                       (sprite-ancho (abs (divseg alto trans-y)))
                       (sprite-ancho/2 (/ sprite-ancho 2.0))
@@ -101,7 +100,14 @@
                  (loop for x single-float from x-inicial below (+ x-inicial ancho-franja)
                     for x-fix fixnum = (truncate x)
                     if (< trans-y (aref zbuffer x-fix))
-                    do (let ((frontera (sprite-frontera s))
+                    do (let ((frontera (aref sprite-fronteras
+                                             (if (> (length sprite-fronteras) 1)
+                                                 (cond
+                                                   ((<= (abs angulo) 0.1) 0)
+                                                   ((and (> angulo 0.1) (<= angulo 1.17)) 1)
+                                                   ((and (> angulo 1.17) (<= angulo 1.96)) 2)
+                                                   (t 3))
+                                                 0)))
                              (tex-x (the fixnum (truncate (* (- (+ x sprite-ancho/2) sprite-screen-x)
                                                              prop-ancho)))))
                          (declare (type fixnum tex-x)
@@ -110,7 +116,14 @@
                                     (<= tex-x (the fixnum (aref frontera 2))))
                            (loop for y single-float from (if (minusp y-ini) 0.0 y-ini) below (if (>= y-fin alto) (1- alto) y-fin)
                               for tex-y fixnum = (truncate (divseg (* (- y y-ini) *tex-alto-fix*) sprite-ancho))
-                              for color = (aref (aref texturas (sprite-textura s)) tex-y tex-x)
+                              for color = (aref (aref texturas (aref sprite-texturas (if (> (length sprite-texturas) 1)
+                                                                                         (cond
+                                                                                           ((<= (abs angulo) 0.1) 0)
+                                                                                           ((and (> angulo 0.1) (<= angulo 1.17)) 1)
+                                                                                           ((and (> angulo 1.17) (<= angulo 1.96)) 2)
+                                                                                           (t 3))
+                                                                                         0)))
+                                                tex-y tex-x)
                               if (and (>= tex-y (the fixnum (aref frontera 1)))
                                       (<= tex-y (the fixnum (aref frontera 3)))
                                       (/= 0 color))
@@ -130,6 +143,11 @@
          and s-y single-float = (- (the single-float (sprite-y s)) pos-y)
          for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
          and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
-         if (plusp trans-y) do (dibuja s trans-x trans-y)))))
+         and Θ single-float = (atan s-y s-x)
+         if (plusp trans-y)
+         do (log:info "Θ: ~S ~S" Θ (sprite-nombre (sprite-maestro s)))
+           (dibuja trans-x trans-y Θ
+                   (sprite-texturas (sprite-maestro s))
+                   (sprite-fronteras (sprite-maestro s)))))))
 
 ;;(ash (+ (logand a #xfEfEfE) (logand color #xfEfEfE)) -1)

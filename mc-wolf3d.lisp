@@ -45,6 +45,7 @@
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d
                                         :escenario (crea-escenario (or mapa *mapa*)
+                                                                   escenario::*sprites-maestros*
                                                                    escenario::*sprites*
                                                                    #P"./sonidos/"
                                                                    #P"./pics/")))

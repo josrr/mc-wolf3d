@@ -42,6 +42,7 @@
            :initform (make-image :rgb (floor *ancho*) *alto-fix*
                                  :two-dim-array))
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
+   (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
    (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
    (sprite-proximo :initform nil :accessor sprite-proximo :type cons)
    (texturas :initarg :texturas :accessor texturas :initform nil :type (simple-array (simple-array (unsigned-byte 32)
@@ -49,15 +50,15 @@
                                                                                      *))
    (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
 
-(defun crea-escenario (mapa sprites ruta-sonidos &optional (ruta-texturas #P"./pics/")
-                                                   (sprites-fronteras *sprites-fronteras*)
-                                                   (sprites-eventos *sprites-eventos*))
-  (let ((obj (make-instance 'escenario
-                            :texturas (carga-texturas ruta-texturas)
-                            :mapa mapa
-                            :sonidos (carga-sonidos ruta-sonidos))))
-    (setf (sprites obj) (carga-sprites sprites sprites-fronteras sprites-eventos))
-    obj))
+(defun crea-escenario (mapa sprites-maestros sprites ruta-sonidos
+                       &optional (ruta-texturas #P"./pics/"))
+  (let ((tabla-sprites (carga-sprites-maestros sprites-maestros)))
+    (make-instance 'escenario
+                   :texturas (carga-texturas ruta-texturas)
+                   :mapa mapa
+                   :sonidos (carga-sonidos ruta-sonidos)
+                   :sprites-maestros tabla-sprites
+                   :sprites (crea-sprites tabla-sprites sprites))))
 
 (defgeneric rota (escenario &optional dir))
 (defmethod rota (escenario &optional (dir 1))
@@ -345,5 +346,5 @@
     (declare (type (simple-array sprite) sprites))
     (when sprites
       (loop for sprite across sprites do
-           (loop for ev in (sprite-eventos sprite) do
+           (loop for ev in (sprite-eventos (sprite-maestro sprite)) do
                 (evento-reliza escenario ev sprite mezclador))))))
