@@ -142,9 +142,8 @@
          and s-y single-float = (- (the single-float (sprite-y s)) pos-y)
          for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
          and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
-         and Θ single-float = (atan s-y s-x)
          if (plusp trans-y)
-         do (dibuja trans-x trans-y Θ
+         do (dibuja trans-x trans-y (atan s-y s-x)
                     (sprite-texturas (sprite-maestro s))
                     (sprite-fronteras (sprite-maestro s)))))))
 
