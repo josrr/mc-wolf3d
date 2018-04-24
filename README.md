@@ -22,7 +22,7 @@ Little raycasting game engine.
     ("mc-wolf3d")
     * (mc-wolf3d:wolf3d-main escenario:*mapa*)
 
-![Screenshot](wolf3d01.png)
+![Screenshot](wolf3d02.png)
 
 Press the n key to start the game
 

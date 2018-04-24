@@ -280,8 +280,11 @@
                       (aref texturas 3)))))
 
 (defun dibuja-manos (manos pixels x y)
-  (loop for j from 0 below (array-dimension manos 0) do
-       (loop for i from 0 below (array-dimension manos 1)
+  (declare (optimize (speed 3) (safety 0) (debug 0))
+           (type fixnum x y )
+           (type (simple-array (unsigned-byte 32) *) manos pixels))
+  (loop for j fixnum from 0 below (array-dimension manos 0) do
+       (loop for i fixnum from 0 below (array-dimension manos 1)
           for color = (aref manos j i)
           if (> color 0) do
             (setf (aref pixels (+ y j) (+ x i))

@@ -6,11 +6,20 @@
                                                         #(0 0 127 127)
                                                         #(20 0 107 127)
                                                         #(60 0 70 127))
+                                    ((:contacto . (:sonido . 2))))
+                                   (:traje
+                                    #(21) #(#(0 0 127 127))
                                     ((:contacto . (:sonido . 2))))))
 
-(defparameter *sprites* '((:portal-a 5.0 5.0)
-                          (:portal-a 5.75 5.0)
-                          (:portal-a 6.5 5.0)))
+(defparameter *sprites* '((:portal-a 1.5 5.0)
+                          (:portal-a 1.5 6.0)
+                          (:portal-a 1.5 7.0)
+                          (:portal-a 1.5 8.0)
+                          (:traje 1.5 5.5)
+                          (:traje 1.5 6.5)
+                          (:traje 1.5 7.5)
+                          (:traje 2.5 4.5)
+                          (:traje 2.5 4.5)))
 
 (defclass sprite-maestro ()
   ((nombre :initform :obj-1 :type :keyword :initarg :nombre
