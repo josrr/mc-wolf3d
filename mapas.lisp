@@ -7,7 +7,7 @@
   (make-array '(24 24)
               :element-type 'fixnum
               :initial-contents
-              '((2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2)
+              '((2 1 2 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2)
                 (2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2)
                 (2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2)
                 (2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2)
@@ -151,7 +151,7 @@
 
 (declaim (type (simple-vector 12) *colores-mapa*))
 (defparameter *colores-mapa*
-  (make-array 12 :initial-contents (list +black+ +gray10+ +gray20+ +gray30+
+  (make-array 12 :initial-contents (list +royal-blue+ +gray10+ +gray20+ +gray30+
                                          +gray40+ +gray50+ +gray60+ +gray70+
                                          +gray80+ +gray90+ +gray100+ +blue+)))
 
@@ -163,17 +163,16 @@
      and pos-y fixnum = (truncate (vy2 (posición escenario)))
      with num-columnas fixnum = (array-dimension mapa 1)
      with Δx fixnum = (truncate (/ tamaño num-columnas))
-     for j from 0 below (array-dimension mapa 0)
-     do ;;(log:info mapa pane)
-       (loop for i from 0 below num-columnas
-          for tipo fixnum = (aref mapa j i)
-          ;;if (> tipo 0)
-          do (draw-rectangle* pane
-                              (+ x (* i Δx)) (+ y (* j Δx))
-                              (+ x (* (1+ i) Δx)) (+ y (* (1+ j) Δx))
-                              :ink (aref *colores-mapa* tipo))
-          if (and (= j pos-y) (= i pos-x)) do
-            (draw-circle* pane
-                          (+ x (* i Δx))
-                          (+ y (* j Δx))
-                          (truncate Δx 2) :ink +red+))))
+     for j fixnum from 0 below (array-dimension mapa 0)
+     do (loop for i fixnum from 0 below num-columnas
+           ;;if (zerop (aref mapa j i))
+           do (draw-rectangle* pane (+ x (* j Δx)) (+ y tamaño (- (* i Δx))) (+ x (* (1+ j) Δx)) (+ y tamaño (- (* (1+ i) Δx)))
+                               :ink (if (and (= i pos-y) (= j pos-x))
+                                        +green+
+                                        (aref *colores-mapa*
+                                              (aref mapa j i))))
+           ;;end
+           ;;if (and (= j pos-y) (= i pos-x)) do
+           ;;(draw-arrow* pane (+ x (* (+ 0.5 i) Δx)) (+ y tamaño (- (* (+ j 0.5) Δx))) (+ x (* (+ 1.5 i) Δx)) (+ y tamaño (- (* (+ j 1.5) Δx))) :ink +green+)
+           ;;(draw-circle* pane (+ x (* (+ 0.5 i) Δx)) (+ y tamaño (- (* (+ j 0.5) Δx))) (truncate Δx 2) :ink +green+)
+             )))
