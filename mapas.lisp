@@ -148,3 +148,32 @@
                 (2 0 0 0 0 0 0 0 2 0 0 0 0 0 2 5 0 5 0 5 0 5 0 5)
                 (2 2 0 0 0 0 0 2 2 2 0 0 0 2 2 0 5 0 5 0 0 0 5 5)
                 (2 2 2 2 1 2 2 2 2 2 2 1 2 2 2 5 5 5 5 5 5 5 5 5))))
+
+(declaim (type (simple-vector 12) *colores-mapa*))
+(defparameter *colores-mapa*
+  (make-array 12 :initial-contents (list +black+ +gray10+ +gray20+ +gray30+
+                                         +gray40+ +gray50+ +gray60+ +gray70+
+                                         +gray80+ +gray90+ +gray100+ +blue+)))
+
+(defun dibuja-mapa (escenario pane x y tamaño)
+  (declare (optimize (speed 3) (safety 0))
+           (type fixnum x y tamaño))
+  (loop with mapa of-type (simple-array fixnum (24 24)) = (mapa escenario)
+     and pos-x fixnum = (truncate (vx2 (posición escenario)))
+     and pos-y fixnum = (truncate (vy2 (posición escenario)))
+     with num-columnas fixnum = (array-dimension mapa 1)
+     with Δx fixnum = (truncate (/ tamaño num-columnas))
+     for j from 0 below (array-dimension mapa 0)
+     do ;;(log:info mapa pane)
+       (loop for i from 0 below num-columnas
+          for tipo fixnum = (aref mapa j i)
+          ;;if (> tipo 0)
+          do (draw-rectangle* pane
+                              (+ x (* i Δx)) (+ y (* j Δx))
+                              (+ x (* (1+ i) Δx)) (+ y (* (1+ j) Δx))
+                              :ink (aref *colores-mapa* tipo))
+          if (and (= j pos-y) (= i pos-x)) do
+            (draw-circle* pane
+                          (+ x (* i Δx))
+                          (+ y (* j Δx))
+                          (truncate Δx 2) :ink +red+))))

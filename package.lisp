@@ -10,6 +10,9 @@
            #:*ancho*
            #:*alto*
            #:regenera
+           #:dibuja-mapa
+           #:dibuja-manos
+           #:mapa
            #:imagen
            #:rota
            #:mueve

@@ -18,9 +18,9 @@
   (:panes (canvas (make-pane 'canvas-pane
                              :record nil
                              :background +black+
-                             :min-width *ancho*
+                             :min-width (truncate *ancho*)
                              :min-height 1024
-                             :display-time t
+                             :display-time nil
                              :display-function #'display)))
   (:layouts
    (:default canvas)))
@@ -43,12 +43,13 @@
   (escenario:inicia-hilos)
   (mixalot:main-thread-init)
   (unless *tipografia* (carga-tipografia))
-  (setf *frame* (make-application-frame 'mc-wolf3d
-                                        :escenario (crea-escenario (or mapa *mapa*)
-                                                                   escenario::*sprites-maestros*
-                                                                   escenario::*sprites*
-                                                                   #P"./sonidos/"
-                                                                   #P"./pics/")))
+  (setf *frame* (make-application-frame 'mc-wolf3d)
+        (escenario *frame*) (crea-escenario (or mapa *mapa*)
+                                            escenario::*sprites-maestros*
+                                            escenario::*sprites*
+                                            ;;(find-pane-named *frame* 'canvas)
+                                            #P"./sonidos/"
+                                            #P"./pics/"))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
                     (mixalot:destroy-mixer (mezclador *frame*))
@@ -151,5 +152,8 @@
     (let ((desp (/ (- (bounding-rectangle-width (sheet-region pane)) *ancho*) 2.0)))
       (draw-design pane (make-image-design (imagen escenario)) :x desp :y desp))
     (let ((cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
-      (draw-rectangle* pane 0 1003 (the fixnum (+ 40 (the fixnum (text-size pane cadena :text-style *tipo-normal*)))) 900 :ink +black+)
-      (draw-text* pane cadena 10 990 :text-style *tipo-normal* :ink +white+))))
+      (draw-rectangle* pane 0 1003 (the fixnum (+ 10 (the fixnum (text-size pane cadena :text-style *tipo-normal*)))) 900 :ink +black+)
+      (draw-text* pane cadena 10 990 :text-style *tipo-normal* :ink +white+))
+    (dibuja-mapa escenario pane
+                 (- (bounding-rectangle-width (sheet-region pane)) 248)
+                 (- (bounding-rectangle-height (sheet-region pane)) 248) 248)))

@@ -41,6 +41,8 @@
    (imagen :accessor imagen
            :initform (make-image :rgb (floor *ancho*) *alto-fix*
                                  :two-dim-array))
+   (manos :accessor manos :initform nil :initarg :manos)
+   ;;(pane :accessor pane :initform nil :initarg :pane)
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
    (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
    (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
@@ -50,15 +52,17 @@
                                                                                      *))
    (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
 
-(defun crea-escenario (mapa sprites-maestros sprites ruta-sonidos
-                       &optional (ruta-texturas #P"./pics/"))
+(defun crea-escenario (mapa sprites-maestros sprites
+                       ruta-sonidos &optional (ruta-texturas #P"./pics/"))
   (let ((tabla-sprites (carga-sprites-maestros sprites-maestros)))
     (make-instance 'escenario
                    :texturas (carga-texturas ruta-texturas)
                    :mapa mapa
+                   ;;:pane pane
                    :sonidos (carga-sonidos ruta-sonidos)
                    :sprites-maestros tabla-sprites
-                   :sprites (crea-sprites tabla-sprites sprites))))
+                   :sprites (crea-sprites tabla-sprites sprites)
+                   :manos (carga-archivo #P"./pics/manos.png"))))
 
 (defgeneric rota (escenario &optional dir))
 (defmethod rota (escenario &optional (dir 1))
@@ -275,35 +279,49 @@
                       (aref texturas 3)
                       (aref texturas 3)))))
 
+(defun dibuja-manos (manos pixels x y)
+  (loop for j from 0 below (array-dimension manos 0) do
+       (loop for i from 0 below (array-dimension manos 1)
+          for color = (aref manos j i)
+          if (> color 0) do
+            (setf (aref pixels (+ y j) (+ x i))
+                  color))))
+
 (defgeneric regenera (escenario))
 
 (defmethod regenera ((escenario escenario))
   (declare (optimize (speed 3) (safety 0) (debug 0)))
-  (with-slots (imagen ancho alto dirección posición plano-camara mapa sprites texturas zbuffer) escenario
+  (with-slots (imagen ancho alto dirección posición pane mapa
+                      manos plano-camara sprites texturas zbuffer)
+      escenario
     (declare (type single-float ancho))
     (sprites-ordena posición sprites)
-    (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
-       and pixels = (image-pixels imagen)
-       for x single-float from 0.0 below ancho by paso
-       and i fixnum from 0
-       do (bt:with-lock-held ((aref *bloqueos* i))
-            (setf (aref *tareas* i)
-                  (let ((x x))
-                    (lambda ()
-                      (genera-escenario x (+ x paso) pixels dirección
-                                        posición plano-camara
-                                        mapa texturas zbuffer)
-                      (sprites-dibuja pixels
-                                      x paso
-                                      ancho alto
-                                      (vx2 posición)     (vy2 posición)
-                                      (vx2 plano-camara) (vy2 plano-camara)
-                                      (vx2 dirección)    (vy2 dirección)
-                                      sprites zbuffer texturas))))
-            (bt:condition-notify (aref *conds* i))))
-    (bt:with-lock-held (*bloqueo-fin*)
-      (loop until (every #'null *tareas*)
-         do (bt:condition-wait *cond-fin* *bloqueo-fin*)))))
+    (let ((pixels (image-pixels imagen)))
+      (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
+         for x single-float from 0.0 below ancho by paso
+         and i fixnum from 0
+         do (bt:with-lock-held ((aref *bloqueos* i))
+              (setf (aref *tareas* i)
+                    (let ((x x))
+                      (lambda ()
+                        (genera-escenario x (+ x paso) pixels dirección
+                                          posición plano-camara
+                                          mapa texturas zbuffer)
+                        (sprites-dibuja pixels
+                                        x paso
+                                        ancho alto
+                                        (vx2 posición)     (vy2 posición)
+                                        (vx2 plano-camara) (vy2 plano-camara)
+                                        (vx2 dirección)    (vy2 dirección)
+                                        sprites zbuffer texturas))))
+              (bt:condition-notify (aref *conds* i))))
+      (bt:with-lock-held (*bloqueo-fin*)
+        (loop until (every #'null *tareas*)
+           do (bt:condition-wait *cond-fin* *bloqueo-fin*)))
+      (dibuja-manos manos pixels
+                    (truncate (- ancho (array-dimension manos 1)) 2)
+                    (- (truncate alto)
+                       (array-dimension manos 0))))))
 
 (defclass accion ()
   ((pars :initarg :pars :accessor accion-pars)))
