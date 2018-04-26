@@ -18,7 +18,10 @@
            #:mueve
            #:sonidos
            #:sprites
+           #:sprite-x
+           #:sprite-y
            #:escenario-revisa-eventos
+           #:escenario-realiza-personajes
            #:crea-escenario
            #:carga-texturas
            #:carga-sprites
@@ -27,6 +30,23 @@
            #:inicia-hilos
            #:termina-hilos))
 
+(defpackage #:personajes
+  (:use #:clim
+        #:clim-lisp
+        #:mcclim-render
+        #:3d-vectors
+        #:3d-matrices)
+  (:import-from #:escenario
+                #:escenario
+                #:sprites
+                #:sprite-x
+                #:sprite-y
+                #:posición
+                #:texturas)
+  (:export #:personaje
+           #:crea-personaje
+           #:personaje-realiza-comportamiento))
+
 (defpackage #:mc-wolf3d
   (:nicknames :wol3d)
   (:use #:clim
@@ -34,6 +54,7 @@
         #:mcclim-render
         #:3d-vectors
         #:3d-matrices
-        #:escenario)
+        #:escenario
+        #:personajes)
   (:export #:wolf3d-main))
 

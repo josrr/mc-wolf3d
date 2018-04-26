@@ -100,7 +100,8 @@
                         5512)
                  (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
             (escenario-revisa-eventos escenario mezclador)
-          if (or modo-rot modo-mov) do (redisplay-frame-pane frame 'canvas)
+          if (or (escenario-realiza-personajes escenario) modo-rot modo-mov) do
+            (redisplay-frame-pane frame 'canvas)
           else do (sleep 0.005))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")

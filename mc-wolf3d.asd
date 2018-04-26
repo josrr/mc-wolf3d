@@ -17,6 +17,7 @@
                (:file "texturas")
                (:file "sprites")
                (:file "mapas")
+               (:file "personajes")
                (:file "sonidos")
                (:file "escenario")
                (:file "mc-wolf3d")))

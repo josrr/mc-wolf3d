@@ -46,6 +46,7 @@
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
    (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
    (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
+   (personajes :initform nil :initarg :personajes :accessor personajes :type (simple-array personaje))
    (sprite-proximo :initform nil :accessor sprite-proximo :type cons)
    (texturas :initarg :texturas :accessor texturas :initform nil :type (simple-array (simple-array (unsigned-byte 32)
                                                                                                    (*tex-ancho-fix* *tex-alto-fix*))
@@ -54,14 +55,16 @@
 
 (defun crea-escenario (mapa sprites-maestros sprites
                        ruta-sonidos &optional (ruta-texturas #P"./pics/"))
-  (let ((tabla-sprites (carga-sprites-maestros sprites-maestros)))
+  (let* ((tabla-sprites (carga-sprites-maestros sprites-maestros))
+         (arreglo-sprites (crea-sprites tabla-sprites sprites)))
     (make-instance 'escenario
                    :texturas (carga-texturas ruta-texturas)
                    :mapa mapa
-                   ;;:pane pane
                    :sonidos (carga-sonidos ruta-sonidos)
                    :sprites-maestros tabla-sprites
-                   :sprites (crea-sprites tabla-sprites sprites)
+                   :sprites arreglo-sprites
+                   :personajes (make-array 5 :element-type 'personajes:personaje
+                                           :initial-contents (map 'list #'personajes:crea-personaje (subseq arreglo-sprites 7 12)))
                    :manos (carga-archivo #P"./pics/manos.png"))))
 
 (defgeneric rota (escenario &optional dir))
@@ -369,3 +372,13 @@
       (loop for sprite across sprites do
            (loop for ev in (sprite-eventos (sprite-maestro sprite)) do
                 (evento-reliza escenario ev sprite mezclador))))))
+
+(defgeneric escenario-realiza-personajes (escenario))
+(defmethod escenario-realiza-personajes ((escenario escenario))
+  (declare (optimize (speed 3)))
+  (with-slots (personajes) escenario
+    (declare (type (simple-array personajes:personaje) personajes))
+    (when personajes
+      (some #'identity
+            (loop for personaje across personajes collect
+                 (personajes:personaje-realiza-comportamiento personaje escenario))))))
