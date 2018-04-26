@@ -158,21 +158,32 @@
 (defun dibuja-mapa (escenario pane x y tamaño)
   (declare (optimize (speed 3) (safety 0))
            (type fixnum x y tamaño))
-  (loop with mapa of-type (simple-array fixnum (24 24)) = (mapa escenario)
-     and pos-x fixnum = (truncate (vx2 (posición escenario)))
-     and pos-y fixnum = (truncate (vy2 (posición escenario)))
-     with num-columnas fixnum = (array-dimension mapa 1)
-     with Δx fixnum = (truncate (/ tamaño num-columnas))
-     for j fixnum from 0 below (array-dimension mapa 0)
-     do (loop for i fixnum from 0 below num-columnas
-           ;;if (zerop (aref mapa j i))
-           do (draw-rectangle* pane (+ x (* j Δx)) (+ y tamaño (- (* i Δx))) (+ x (* (1+ j) Δx)) (+ y tamaño (- (* (1+ i) Δx)))
-                               :ink (if (and (= i pos-y) (= j pos-x))
-                                        +green+
-                                        (aref *colores-mapa*
+  (let ((y-fin (+ y tamaño)))
+    (declare (type fixnum y-fin))
+    (with-translation (pane x y-fin)
+      (loop with mapa of-type (simple-array fixnum (24 24)) = (mapa escenario)
+         and pos-x single-float = (vx2 (posición escenario))
+         and pos-y single-float = (vy2 (posición escenario))
+         and dir-x = (vx2 (dirección escenario))
+         and dir-y = (vy2 (dirección escenario))
+         with num-columnas fixnum = (array-dimension mapa 1)
+         with Δx fixnum = (truncate (/ tamaño num-columnas))
+         for j fixnum from 0 below (array-dimension mapa 0)
+         do (loop for i fixnum from 0 below num-columnas
+               do (draw-rectangle* pane
+                                   (* j Δx) (- (* i Δx))
+                                   (* (1+ j) Δx) (- (* (1+ i) Δx))
+                                   :ink (aref *colores-mapa*
                                               (aref mapa j i))))
-           ;;end
-           ;;if (and (= j pos-y) (= i pos-x)) do
-           ;;(draw-arrow* pane (+ x (* (+ 0.5 i) Δx)) (+ y tamaño (- (* (+ j 0.5) Δx))) (+ x (* (+ 1.5 i) Δx)) (+ y tamaño (- (* (+ j 1.5) Δx))) :ink +green+)
-           ;;(draw-circle* pane (+ x (* (+ 0.5 i) Δx)) (+ y tamaño (- (* (+ j 0.5) Δx))) (truncate Δx 2) :ink +green+)
-             )))
+         finally (let ((centro (make-point (* pos-x Δx)
+                                           (- (* pos-y Δx)))))
+                   (with-rotation (pane (atan dir-x dir-y) centro)
+                     (draw-arrow* pane
+                                  (* pos-x Δx)
+                                  (- (* (1- pos-y) Δx))
+                                  (* pos-x Δx)
+                                  (- (* (1+ pos-y) Δx))
+                                  :line-thickness 1.75
+                                  :head-length 8
+                                  :head-width 10
+                                  :ink +turquoise+)))))))
