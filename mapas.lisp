@@ -176,7 +176,9 @@
                                    :ink (aref *colores-mapa*
                                               (aref mapa j i))))
          finally (let ((centro (make-point (* pos-x Δx)
-                                           (- (* pos-y Δx)))))
+                                           (- (* pos-y Δx))))
+                       (personajes (personajes escenario)))
+                   (declare (type (simple-array personaje) personajes))
                    (with-rotation (pane (atan dir-x dir-y) centro)
                      (draw-arrow* pane
                                   (* pos-x Δx)
@@ -186,4 +188,10 @@
                                   :line-thickness 1.75
                                   :head-length 8
                                   :head-width 10
-                                  :ink +turquoise+)))))))
+                                  :ink +turquoise+))
+                   (when personajes
+                     (loop for p across personajes
+                        for s = (personaje-sprite p) do
+                          (draw-circle* pane
+                                        (* (sprite-x s) Δx) (- (* (sprite-y s) Δx))
+                                        (/ Δx 2) :ink +red+))))))))

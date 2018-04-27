@@ -23,11 +23,11 @@
                           (:portal-a 1.5 6.0)
                           (:portal-a 1.5 7.0)
                           (:portal-a 1.5 8.0)
-                          (:trajem 1.5 5.5)
-                          (:traje 1.5 6.5)
-                          (:traje 1.5 7.5)
-                          (:traje 2.5 4.5)
-                          (:trajem 2.5 5.5)))
+                          (:trajem 10.5 3.5)
+                          (:traje 21.5 12.5)
+                          (:traje 12.5 17.5)
+                          (:traje 18.5 20.5)
+                          (:trajem 12.5 5.5)))
 
 (defclass sprite-maestro ()
   ((nombre :initform :obj-1 :type :keyword :initarg :nombre

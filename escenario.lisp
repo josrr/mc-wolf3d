@@ -63,8 +63,8 @@
                    :sonidos (carga-sonidos ruta-sonidos)
                    :sprites-maestros tabla-sprites
                    :sprites arreglo-sprites
-                   :personajes (make-array 5 :element-type 'personajes:personaje
-                                           :initial-contents (map 'list #'personajes:crea-personaje (subseq arreglo-sprites 7 12)))
+                   :personajes (make-array 5 :element-type 'personaje
+                                           :initial-contents (map 'list #'crea-personaje (subseq arreglo-sprites 7 12)))
                    :manos (carga-archivo #P"./pics/manos.png"))))
 
 (defgeneric rota (escenario &optional dir))
@@ -373,12 +373,20 @@
            (loop for ev in (sprite-eventos (sprite-maestro sprite)) do
                 (evento-reliza escenario ev sprite mezclador))))))
 
+(defgeneric personaje-realiza-comportamiento (personaje escenario))
+
+(defmethod personaje-realiza-comportamiento ((personaje personaje) (escenario escenario))
+  (with-slots (comportamiento) personaje
+    (when comportamiento
+      (funcall comportamiento escenario personaje))))
+
 (defgeneric escenario-realiza-personajes (escenario))
+
 (defmethod escenario-realiza-personajes ((escenario escenario))
   (declare (optimize (speed 3)))
   (with-slots (personajes) escenario
-    (declare (type (simple-array personajes:personaje) personajes))
+    (declare (type (simple-array personaje) personajes))
     (when personajes
       (some #'identity
             (loop for personaje across personajes collect
-                 (personajes:personaje-realiza-comportamiento personaje escenario))))))
+                 (personaje-realiza-comportamiento personaje escenario))))))
