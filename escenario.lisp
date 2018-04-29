@@ -340,48 +340,81 @@
                        (array-dimension manos 0))))))
 
 (defclass accion ()
-  ((pars :initarg :pars :accessor accion-pars)))
+  ((pars :initarg :pars :accessor accion-pars)
+   (realizada :initform nil :accessor accion-realizada)))
 (defclass accion-sonido (accion)
+  ())
+(defclass accion-dialogo (accion)
   ())
 (defclass evento ()
   ((accion :initarg :accion :accessor evento-accion :type accion)))
 (defclass evento-contacto (evento) ())
 
-(defgeneric evento-reliza (escenario evento sprite mezclador))
+(defgeneric accion-realiza (escenario accion sprite lienzo mezclador))
+
+(defgeneric evento-reliza (escenario evento sprite lienzo mezclador))
+
+(defmethod accion-realiza ((escenario escenario) (accion accion-sonido) (sprite sprite) lienzo mezclador)
+  (declare (optimize (speed 3)) (ignore lienzo))
+  (with-slots (sonidos) escenario
+    (declare (type (simple-array mixalot-vorbis:vorbis-streamer) sonidos))
+    (let ((snd (aref sonidos (accion-pars accion))))
+      (declare (type mixalot-vorbis:vorbis-streamer snd))
+      (if (mixalot:streamer-paused-p snd mezclador)
+          (progn
+            (mixalot:streamer-seek snd mezclador 0)
+            (mixalot:streamer-unpause snd mezclador))
+          (if (member snd (mixalot:mixer-stream-list mezclador))
+              (when (> (the fixnum (mixalot:streamer-position snd mezclador))
+                       22050)
+                (mixalot:streamer-seek snd mezclador 0))
+              (mixalot:mixer-add-streamer mezclador snd))))))
+
+(defparameter *tipo-dialogo* (make-text-style "Edit Undo BRK" "Regular" 24))
+(defun dibuja-dialogo (escenario lienzo sprite texto)
+  (with-slots (alto ancho) escenario
+    (draw-rectangle* lienzo
+                     256 (- (bounding-rectangle-height lienzo) 256)
+                     (- (bounding-rectangle-width lienzo) 320)
+                     (- (bounding-rectangle-height lienzo) 24)
+                     :filled nil
+                     :ink +turquoise+)
+    (loop for linea in texto
+       for y-ini from (- (bounding-rectangle-height lienzo) 230) by 26 do
+         (draw-text* lienzo linea
+                     264 y-ini
+                     :align-x :left
+                     :text-style *tipo-dialogo*
+                     :ink +turquoise+))))
+
+(defmethod accion-realiza ((escenario escenario) (accion accion-dialogo) (sprite sprite) lienzo mezclador)
+  (declare (optimize (speed 3)) (ignore mezclador))
+  (unless (accion-realizada accion)
+    (setf (accion-realizada accion) t)
+    (dibuja-dialogo escenario lienzo sprite (accion-pars accion))))
 
 (defmethod evento-reliza ((escenario escenario) (evento evento-contacto)
-                          (sprite sprite) mezclador)
+                          (sprite sprite) lienzo mezclador)
   (declare (optimize (speed 3)))
-  (with-slots (sonidos posición) escenario
-    (declare (type (simple-array mixalot-vorbis:vorbis-streamer) sonidos))
+  (with-slots (posición) escenario
     (with-slots (x y) sprite
       (declare (type single-float x y))
       (let ((Δᵤ (abs (the single-float (- (vx2 posición) x))))
             (Δᵥ (abs (the single-float (- (vy2 posición) y)))))
         (declare (type single-float Δᵤ Δᵥ))
         (when (and (<= Δᵤ 0.75) (<= Δᵥ 0.35))
-          (let ((snd (aref sonidos (accion-pars (evento-accion evento)))))
-            (declare (type mixalot-vorbis:vorbis-streamer snd))
-            (if (mixalot:streamer-paused-p snd mezclador)
-                (progn
-                  (mixalot:streamer-seek snd mezclador 0)
-                  (mixalot:streamer-unpause snd mezclador))
-                (if (member snd (mixalot:mixer-stream-list mezclador))
-                    (when (> (the fixnum (mixalot:streamer-position snd mezclador))
-                             22050)
-                      (mixalot:streamer-seek snd mezclador 0))
-                    (mixalot:mixer-add-streamer mezclador snd)))))))))
+          (accion-realiza escenario (evento-accion evento) sprite lienzo mezclador))))))
 
-(defgeneric escenario-revisa-eventos (escenario mezclador))
+(defgeneric escenario-revisa-eventos (escenario lienzo mezclador))
 
-(defmethod escenario-revisa-eventos ((escenario escenario) mezclador)
+(defmethod escenario-revisa-eventos ((escenario escenario) lienzo mezclador)
   (declare (optimize (speed 3)))
   (with-slots (sprites) escenario
     (declare (type (simple-array sprite) sprites))
     (when sprites
       (loop for sprite across sprites do
            (loop for ev in (sprite-eventos (sprite-maestro sprite)) do
-                (evento-reliza escenario ev sprite mezclador))))))
+                (evento-reliza escenario ev sprite lienzo mezclador))))))
 
 (defgeneric personaje-realiza-comportamiento (personaje escenario))
 

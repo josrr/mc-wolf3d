@@ -82,6 +82,7 @@
      (with-slots (modo-rot modo-mov escenario mezclador) frame
        (loop while t
           with sonidos of-type (simple-array t) = (sonidos escenario)
+          and lienzo = (find-pane-named frame 'canvas)
           if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
           if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
           do (when sonidos
@@ -98,7 +99,7 @@
                            (the fixnum (mixalot:streamer-position (aref sonidos 0) mezclador)))
                         5512)
                  (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
-            (escenario-revisa-eventos escenario mezclador)
+            (escenario-revisa-eventos escenario lienzo mezclador)
           if (or (escenario-realiza-personajes escenario) modo-rot modo-mov) do
             (redisplay-frame-pane frame 'canvas)
           else do (sleep 0.005))))))

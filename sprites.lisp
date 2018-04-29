@@ -9,23 +9,37 @@
                                     ((:contacto . (:sonido . 2))))
                                    (:lampara-01
                                     #(22) #(#(0 0 127 127)))
-                                   (:traje
+                                   (:persona-1
                                     #(21) #(#(0 0 127 127))
+                                    ((:contacto . (:dialogo . ("Hola. Necesitamos ayuda controlando los robots."
+                                                               "La IA, que ya no está bajo nuestro control,"
+                                                               "está usando a los robots para mantener los"
+                                                               "controles manuales encendidos."
+                                                               ""
+                                                               "Hay que encerrar a los robots y apagar"
+                                                               "los controles.")))))
+                                   (:robot
+                                    #(23) #(#(0 0 127 127))
                                     ((:contacto . (:sonido . 2))))
                                    (:trajem
                                     #(23) #(#(0 0 127 127))
                                     ((:contacto . (:sonido . 2))))))
 
 (defparameter *sprites*
-  '(((:traje 1.5 7.5)
-     (:trajem 7.5 7.5)
+  '(((:persona-1 1.75 7.35)
      (:lampara-01 1.5 7.5)
      (:lampara-01 1.5 5.5)
      (:lampara-01 1.5 3.5)
-     (:lampara-01 1.5 1.5))))
+     (:lampara-01 1.5 1.5)
+     (:robot 7.5 21.5)
+     (:robot 11.5 21.5)
+     (:robot 19.5 21.5)
+     (:robot 7.5 8.5)
+     (:robot 11.5 8.5)
+     (:robot 19.5 8.5))))
 
 (defparameter *personajes*
-  (list `(:traje . nil) (cons :trajem *comportamiento*)))
+  (list (cons :robot *comportamiento*) (cons :trajem *comportamiento*)))
 
 (defclass sprite-maestro ()
   ((nombre :initform :obj-1 :type :keyword :initarg :nombre
