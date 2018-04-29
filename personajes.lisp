@@ -66,10 +66,12 @@
                    :initarg :comportamiento :accessor personaje-comportamiento)))
 
 (defun crea-personaje (sprite &optional (comportamiento *comportamiento*))
-  (let ((comp (or comportamiento *comportamiento*)))
-    (make-instance 'personaje
-                   :sprite sprite
-                   :comportamiento (if (functionp comp) (funcall comp) comp))))
+  (make-instance 'personaje
+                 :sprite sprite
+                 :comportamiento (when comportamiento
+                                   (if (functionp comportamiento)
+                                       (funcall comportamiento)
+                                       comportamiento))))
 
 (defun personajes-redefine-comportamiento (escenario nuevo-comportamiento)
   (loop for p across (personajes escenario) do

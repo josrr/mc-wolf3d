@@ -56,15 +56,25 @@
 (defun crea-escenario (mapa sprites-maestros sprites
                        ruta-sonidos &optional (ruta-texturas #P"./pics/"))
   (let* ((tabla-sprites (carga-sprites-maestros sprites-maestros))
-         (arreglo-sprites (crea-sprites tabla-sprites sprites)))
+         (arreglo-sprites (crea-sprites tabla-sprites sprites))
+         (personajes (remove-if (complement
+                                 (lambda (s)
+                                   (member (sprite-nombre (sprite-maestro s))
+                                           *personajes* :key #'car)))
+                                arreglo-sprites)))
     (make-instance 'escenario
                    :texturas (carga-texturas ruta-texturas)
                    :mapa mapa
                    :sonidos (carga-sonidos ruta-sonidos)
                    :sprites-maestros tabla-sprites
                    :sprites arreglo-sprites
-                   :personajes (make-array 5 :element-type 'personaje
-                                           :initial-contents (map 'list #'crea-personaje (subseq arreglo-sprites 7 12)))
+                   :personajes (make-array (length personajes) :element-type 'personaje
+                                           :initial-contents (map 'list
+                                                                  (lambda (s)
+                                                                    (let ((comp (assoc (sprite-nombre (sprite-maestro s))
+                                                                                       *personajes*)))
+                                                                      (crea-personaje s (when comp (cdr comp)))))
+                                                                  personajes))
                    :manos (carga-archivo #P"./pics/manos.png"))))
 
 (defgeneric rota (escenario &optional dir))

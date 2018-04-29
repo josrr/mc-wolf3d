@@ -16,18 +16,16 @@
                                     #(23) #(#(0 0 127 127))
                                     ((:contacto . (:sonido . 2))))))
 
-(defparameter *sprites* '((:lampara-01 1.5 5.5)
-                          (:lampara-01 1.5 6.5)
-                          (:lampara-01 1.5 7.5)
-                          (:portal-a 1.5 5.0)
-                          (:portal-a 1.5 6.0)
-                          (:portal-a 1.5 7.0)
-                          (:portal-a 1.5 8.0)
-                          (:trajem 10.5 3.5)
-                          (:traje 21.5 12.5)
-                          (:traje 12.5 17.5)
-                          (:traje 18.5 20.5)
-                          (:trajem 12.5 5.5)))
+(defparameter *sprites*
+  '(((:traje 1.5 7.5)
+     (:trajem 7.5 7.5)
+     (:lampara-01 1.5 7.5)
+     (:lampara-01 1.5 5.5)
+     (:lampara-01 1.5 3.5)
+     (:lampara-01 1.5 1.5))))
+
+(defparameter *personajes*
+  (list `(:traje . nil) (cons :trajem *comportamiento*)))
 
 (defclass sprite-maestro ()
   ((nombre :initform :obj-1 :type :keyword :initarg :nombre

@@ -39,14 +39,15 @@
   (mcclim-truetype::register-all-ttf-fonts (find-port) #P"./")
   (setf *tipografia* t))
 
-(defun wolf3d-main (&optional (mapa (car *mapas*)))
+(defun wolf3d-main (&optional (mapa (car *mapas*))
+                      (sprites (car *sprites*)))
   (escenario:inicia-hilos)
   (mixalot:main-thread-init)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d)
         (escenario *frame*) (crea-escenario (or mapa (car *mapas*))
-                                            escenario::*sprites-maestros*
-                                            escenario::*sprites*
+                                            *sprites-maestros*
+                                            (or sprites (car *sprites*))
                                             #P"./sonidos/"
                                             #P"./pics/"))
   (bt:make-thread (lambda ()

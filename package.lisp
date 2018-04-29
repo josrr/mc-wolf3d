@@ -29,6 +29,8 @@
            #:carga-sprites
            #:personaje-realiza-comportamiento
            #:*mapas*
+           #:*sprites*
+           #:*sprites-maestros*
            #:inicia-hilos
            #:termina-hilos))
 
