@@ -4,7 +4,7 @@
 ;;
 (uiop/image:register-image-restore-hook
  (lambda ()
-   (mc-wolf3d:wolf3d-main escenario::*mapa-3*)
+   (mc-wolf3d:wolf3d-main)
    (gc :full t)
    (sb-impl::toplevel-repl nil))
  nil)
