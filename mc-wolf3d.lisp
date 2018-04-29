@@ -39,19 +39,21 @@
   (mcclim-truetype::register-all-ttf-fonts (find-port) #P"./")
   (setf *tipografia* t))
 
-(defun wolf3d-main (&optional (mapa *mapa*))
+(defun wolf3d-main (&optional (mapa (car *mapas*)))
   (escenario:inicia-hilos)
   (mixalot:main-thread-init)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d)
-        (escenario *frame*) (crea-escenario (or mapa *mapa*)
+        (escenario *frame*) (crea-escenario (or mapa (car *mapas*))
                                             escenario::*sprites-maestros*
                                             escenario::*sprites*
-                                            ;;(find-pane-named *frame* 'canvas)
                                             #P"./sonidos/"
                                             #P"./pics/"))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
+                    (when (jugando *frame*)
+                      (clim-sys:destroy-process (jugando *frame*))
+                      (setf (jugando *frame*) nil))
                     (mixalot:destroy-mixer (mezclador *frame*))
                     (setf *frame* nil)
                     (escenario:termina-hilos))
@@ -70,10 +72,6 @@
     (setf (jugando *frame*) nil)))
 
 (define-mc-wolf3d-command (com-salir :name "salir") ()
-  (when (jugando *frame*)
-    (clim-sys:destroy-process (jugando *frame*))
-    (setf (jugando *frame*) nil))
-  (escenario:termina-hilos)
   (frame-exit *application-frame*))
 
 (defun juega (frame)

@@ -28,12 +28,9 @@
            #:carga-texturas
            #:carga-sprites
            #:personaje-realiza-comportamiento
-           #:*mapa*
-           #:*mapa-3*
+           #:*mapas*
            #:inicia-hilos
            #:termina-hilos))
-
-;; (defpackage #:personajes (:use #:clim #:clim-lisp #:mcclim-render #:3d-vectors #:3d-matrices) (:import-from #:escenario #:escenario #:sprites #:sprite-x #:sprite-y #:posición) (:export #:personaje #:crea-personaje))
 
 (defpackage #:mc-wolf3d
   (:nicknames :wol3d)
