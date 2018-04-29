@@ -9,6 +9,10 @@
                                     ((:contacto . (:sonido . 2))))
                                    (:lampara-01
                                     #(22) #(#(0 0 127 127)))
+                                   (:escalera
+                                    #(16) #(#(32 0 95 127))
+                                    ((:contacto . (:dialogo . ("Para terminar el nivel debes encerrar a los robots"
+                                                               "y apagar todos los interruptores.")))))
                                    (:persona-1
                                     #(21) #(#(0 0 127 127))
                                     ((:contacto . (:dialogo . ("Hola. Necesitamos ayuda controlando los robots."
@@ -36,7 +40,8 @@
      (:robot 19.5 21.5)
      (:robot 7.5 8.5)
      (:robot 11.5 8.5)
-     (:robot 19.5 8.5))))
+     (:robot 19.5 8.5)
+     (:escalera 22.5 22.5))))
 
 (defparameter *personajes*
   (list (cons :robot *comportamiento*) (cons :trajem *comportamiento*)))

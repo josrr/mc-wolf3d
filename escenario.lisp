@@ -372,6 +372,7 @@
 
 (defparameter *tipo-dialogo* (make-text-style "Edit Undo BRK" "Regular" 24))
 (defun dibuja-dialogo (escenario lienzo sprite texto)
+  (declare (ignore sprite))
   (with-slots (alto ancho) escenario
     (draw-rectangle* lienzo
                      256 (- (bounding-rectangle-height lienzo) 256)
@@ -379,6 +380,12 @@
                      (- (bounding-rectangle-height lienzo) 24)
                      :filled nil
                      :ink +turquoise+)
+    (draw-rectangle* lienzo
+                     258 (- (bounding-rectangle-height lienzo) 248)
+                     (- (bounding-rectangle-width lienzo) 324)
+                     (- (bounding-rectangle-height lienzo) 28)
+                     :filled t
+                     :ink +black+)
     (loop for linea in texto
        for y-ini from (- (bounding-rectangle-height lienzo) 230) by 26 do
          (draw-text* lienzo linea
