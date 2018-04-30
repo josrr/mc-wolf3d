@@ -18,7 +18,7 @@
   (:panes (canvas (make-pane 'canvas-pane
                              :record nil
                              :background +black+
-                             :min-width (truncate *ancho*)
+                             :min-width 1280
                              :min-height 1024
                              :display-time nil
                              :display-function #'display)))
