@@ -23,7 +23,7 @@
                                                                "Hay que encerrar a los robots y apagar"
                                                                "los controles.")))))
                                    (:robot
-                                    #(23) #(#(0 0 127 127))
+                                    #(24) #(#(0 0 127 127))
                                     ((:contacto . (:sonido . 2))))
                                    (:trajem
                                     #(23) #(#(0 0 127 127))
