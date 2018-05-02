@@ -20,19 +20,38 @@
                     :min-width 1280
                     :min-height 1024)))
 
-(defparameter *tipo-titulos* (make-text-style :serif :bold 14))
-(defparameter *tipo-subtitulos* (make-text-style "Wargames" "Regular" 48))
+(defparameter *tipo-titulos* (make-text-style :serif :bold 18))
+(defparameter *tipo-subtitulos* (make-text-style "Wargames" "Regular" 24))
 (defparameter *tipo-normal* (make-text-style "Edit Undo BRK" "Regular" 48))
 
 (defun redibuja-cuadro (frame &optional gadget-arg)
-  ;;(declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (escenario tiempo tiempo-anterior periodo-cuadros portada) frame
     (declare (type single-float periodo-cuadros))
     (let ((gadget (or gadget-arg (car (frame-current-panes frame)))))
       (labels ((dibuja-portada ()
                  (let ((desp (/ (- (bounding-rectangle-width (sheet-region gadget)) (image-width portada)) 2.0)))
-                   (draw-image* gadget portada desp desp)))
+                   (with-translation (gadget desp desp)
+                     (draw-image* gadget portada 0 0)
+                     (let ((cadena "mc-wolf3d"))
+                       (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-normal*)
+                         (draw-text* gadget cadena
+                                     (- (image-width portada) t-ancho 12)
+                                     (- (image-height portada) t-alto 96)
+                                     :text-style *tipo-normal*)))
+                     (let ((cadena "Por José M. Ronquillo Rivera"))
+                       (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-titulos*)
+                         (draw-text* gadget cadena
+                                     (- (image-width portada) t-ancho 12)
+                                     (- (image-height portada) t-alto 32)
+                                     :text-style *tipo-titulos*)))
+                     (let ((cadena "Arte por Alexis Ruíz Martínez"))
+                       (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-titulos*)
+                         (draw-text* gadget cadena
+                                     (- (image-width portada) t-ancho 12)
+                                     (- (image-height portada) t-alto)
+                                     :text-style *tipo-titulos*))))))
                (dibuja-juego ()
+                 (declare (optimize (speed 3)))
                  (regenera escenario)
                  (setf tiempo-anterior tiempo
                        tiempo (local-time:now)
@@ -40,14 +59,19 @@
                                                     (local-time:timestamp-difference tiempo
                                                                                      tiempo-anterior))
                                                'single-float))
-                 (let ((desp (/ (- (bounding-rectangle-width (sheet-region gadget)) *ancho*) 2.0)))
-                   (draw-design gadget (make-image-design (imagen escenario)) :x desp :y desp))
-                 (let ((cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
-                   (draw-rectangle* gadget 0 1003 (the fixnum (+ 40 (the fixnum (text-size gadget cadena :text-style *tipo-normal*)))) 900 :ink +black+)
-                   (draw-text* gadget cadena 10 990 :text-style *tipo-normal* :ink +turquoise+))
-                 (dibuja-mapa escenario gadget
-                              (- (bounding-rectangle-width (sheet-region gadget)) 248)
-                              (- (bounding-rectangle-height (sheet-region gadget)) 256) 248)))
+                 (let* ((ancho-gadget (bounding-rectangle-width (sheet-region gadget)))
+                        (alto-gadget (bounding-rectangle-height (sheet-region gadget)))
+                        (desp (/ (- ancho-gadget *ancho*) 2.0))
+                        (cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
+                   (declare (type fixnum ancho-gadget alto-gadget))
+                   (draw-design gadget (make-image-design (imagen escenario)) :x desp :y desp)
+                   (draw-rectangle* gadget 0 1003 (the fixnum (+ 40 (the fixnum
+                                                                         (text-size gadget cadena :text-style *tipo-normal*))))
+                                    900 :ink +black+)
+                   (draw-text* gadget cadena 10 990 :text-style *tipo-normal* :ink +turquoise+)
+                   (dibuja-mapa escenario gadget
+                                (- ancho-gadget 248)
+                                (- alto-gadget 256) 248))))
         (if (jugando frame)
             (dibuja-juego)
             (dibuja-portada))))))
