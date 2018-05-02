@@ -12,6 +12,7 @@
            #:regenera
            #:dibuja-mapa
            #:dibuja-manos
+           #:dibuja-dialogo
            #:mapa
            #:imagen
            #:rota

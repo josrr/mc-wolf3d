@@ -371,8 +371,7 @@
               (mixalot:mixer-add-streamer mezclador snd))))))
 
 (defparameter *tipo-dialogo* (make-text-style "Edit Undo BRK" "Regular" 24))
-(defun dibuja-dialogo (escenario lienzo sprite texto)
-  (declare (ignore sprite))
+(defun dibuja-dialogo (escenario lienzo texto)
   (with-slots (alto ancho) escenario
     (draw-rectangle* lienzo
                      256 (- (bounding-rectangle-height lienzo) 256)
@@ -395,10 +394,11 @@
                      :ink +turquoise+))))
 
 (defmethod accion-realiza ((escenario escenario) (accion accion-dialogo) (sprite sprite) lienzo mezclador)
-  (declare (optimize (speed 3)) (ignore mezclador))
+  (declare (optimize (speed 3))
+           (ignore mezclador sprite))
   (unless (accion-realizada accion)
     (setf (accion-realizada accion) t)
-    (dibuja-dialogo escenario lienzo sprite (accion-pars accion))))
+    (dibuja-dialogo escenario lienzo (accion-pars accion))))
 
 (defmethod evento-reliza ((escenario escenario) (evento evento-contacto)
                           (sprite sprite) lienzo mezclador)

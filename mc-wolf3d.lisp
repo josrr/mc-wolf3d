@@ -49,7 +49,10 @@
                          (draw-text* gadget cadena
                                      (- (image-width portada) t-ancho 12)
                                      (- (image-height portada) t-alto)
-                                     :text-style *tipo-titulos*))))))
+                                     :text-style *tipo-titulos*)))))
+                 (dibuja-dialogo escenario gadget '("" "  Presiona la tecla 'n' para comenzar el juego;"
+                                                    "" "  'q' para salir del juego;"
+                                                    "" "  'arriba', 'abajo', 'izquierda' y 'derecha' para moverte.")))
                (dibuja-juego ()
                  (declare (optimize (speed 3)))
                  (regenera escenario)
