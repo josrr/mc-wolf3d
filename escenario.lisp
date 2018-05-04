@@ -38,19 +38,14 @@
    (vel-mov :accessor vel-mov :initform 0.15 :type single-float)
    (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 3.0 (/ pi 128.0)) 'single-float)) :type single-float)
    (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
-   (imagen :accessor imagen
-           :initform (make-image :rgb (floor *ancho*) *alto-fix*
-                                 :two-dim-array))
+   (imagen :accessor imagen :initform (make-image :rgb (floor *ancho*) *alto-fix* :two-dim-array))
    (manos :accessor manos :initform nil :initarg :manos)
-   ;;(pane :accessor pane :initform nil :initarg :pane)
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
    (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
    (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
    (personajes :initform nil :initarg :personajes :accessor personajes :type (simple-array personaje))
-   (sprite-proximo :initform nil :accessor sprite-proximo :type cons)
    (texturas :initarg :texturas :accessor texturas :initform nil :type (simple-array (simple-array (unsigned-byte 32)
-                                                                                                   (*tex-ancho-fix* *tex-alto-fix*))
-                                                                                     *))
+                                                                                                   (*tex-ancho-fix* *tex-alto-fix*)) *))
    (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
 
 (defun crea-escenario (mapa sprites-maestros sprites
@@ -75,9 +70,10 @@
                                                                                        *personajes*)))
                                                                       (crea-personaje s (when comp (cdr comp)))))
                                                                   personajes))
-                   :manos (carga-archivo #P"./pics/manos.png"))))
+                   :manos (carga-archivo (merge-pathnames #P"pics/manos.png" mc-wolf3d:*ruta-del-sistema*)))))
 
 (defgeneric rota (escenario &optional dir))
+
 (defmethod rota (escenario &optional (dir 1))
   (declare (optimize (speed 3) (safety 0))
            (type fixnum dir))
@@ -124,7 +120,6 @@
      do (setf (aref arreglo y x) (if (eq :vertical modo)
                                      (logand (ash valor -1) #x7F7F7F)
                                      valor))))
-;;(aref arreglo y (if (oddp x) (1- x) (1+ x))) valor
 
 (declaim (type (simple-array single-float *) *distancias*))
 (defparameter *distancias* (make-array *alto/2*

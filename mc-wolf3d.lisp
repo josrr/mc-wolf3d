@@ -2,8 +2,10 @@
 (in-package #:mc-wolf3d)
 
 (defparameter *frame* nil)
+(defparameter *ruta-del-sistema* (asdf:component-pathname (asdf:find-system 'mc-wolf3d)))
 
 (defclass canvas-gadget (basic-gadget) ())
+
 
 (define-application-frame mc-wolf3d ()
   ((escenario :initarg :escenario :accessor escenario :initform (make-instance 'escenario) :type escenario)
@@ -14,7 +16,7 @@
    (modo-mov :accessor modo-mov :initform nil)
    (modo-rot :accessor modo-rot :initform nil)
    (jugando :accessor jugando :initform nil)
-   (portada :initform (read-image #P"./fondo.png" :image-class :rgb)))
+   (portada :initform (read-image (merge-pathnames #P"fondo.png" *ruta-del-sistema*) :image-class :rgb)))
   (:pane (make-pane 'canvas-gadget
                     :background +black+
                     :min-width 1280
@@ -85,7 +87,7 @@
 
 (defparameter *tipografia* nil)
 (defun carga-tipografia ()
-  (mcclim-truetype::register-all-ttf-fonts (find-port) #P"./")
+  (mcclim-truetype::register-all-ttf-fonts (find-port) *ruta-del-sistema*)
   (setf *tipografia* t))
 
 (defun wolf3d-main (&optional (mapa (car *mapas*))
@@ -96,8 +98,9 @@
         (escenario *frame*) (crea-escenario (or mapa (car *mapas*))
                                             *sprites-maestros*
                                             (or sprites (car *sprites*))
-                                            #P"./sonidos/"
-                                            #P"./pics/"))
+                                            (merge-pathnames #P"sonidos/" *ruta-del-sistema*)
+                                            (merge-pathnames #P"pics/" *ruta-del-sistema*)))
+  (log:info (escenario *frame*))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
                     (when (jugando *frame*)

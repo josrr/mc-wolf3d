@@ -43,5 +43,6 @@
         #:3d-vectors
         #:3d-matrices
         #:escenario)
-  (:export #:wolf3d-main))
+  (:export #:wolf3d-main
+           #:*ruta-del-sistema*))
 
