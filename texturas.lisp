@@ -8,7 +8,7 @@
 
 (defun carga-archivo (archivo)
   (labels ((opticolor-a-entero (r g b)
-             (+ (ash b 16) (ash g 8) r)))
+             (+ (ash r 24) (ash g 16) (ash b 8) #xFF)))
     (let ((img (opticl:read-image-file archivo)))
       (when img
         (let* ((height (array-dimension img 0))

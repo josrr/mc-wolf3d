@@ -7,7 +7,7 @@
   :version "0.0.1"
   :serial t
   :depends-on (:mcclim
-               :mcclim-raster-image
+;;               :mcclim-raster-image
                :3d-vectors
                :3d-matrices
                :local-time

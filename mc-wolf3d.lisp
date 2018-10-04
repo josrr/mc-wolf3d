@@ -4,7 +4,8 @@
 (defparameter *frame* nil)
 (defparameter *ruta-del-sistema* (asdf:component-pathname (asdf:find-system 'mc-wolf3d)))
 
-(defclass canvas-gadget (basic-gadget) ())
+(defclass canvas-gadget (climi::never-repaint-background-mixin basic-gadget)
+  ((bloqueo-cuadro :accessor bloqueo-cuadro :initform (clim-sys:make-lock "Bloqueo cuadro"))))
 
 
 (define-application-frame mc-wolf3d ()
@@ -16,7 +17,7 @@
    (modo-mov :accessor modo-mov :initform nil)
    (modo-rot :accessor modo-rot :initform nil)
    (jugando :accessor jugando :initform nil)
-   (portada :initform (read-image (merge-pathnames #P"fondo.png" *ruta-del-sistema*) :image-class :rgb)))
+   (portada :initform (make-pattern-from-bitmap-file (merge-pathnames #P"fondo.png" *ruta-del-sistema*))))
   (:pane (make-pane 'canvas-gadget
                     :background +black+
                     :min-width 1280
@@ -30,27 +31,30 @@
   (with-slots (escenario tiempo tiempo-anterior periodo-cuadros portada) frame
     (declare (type single-float periodo-cuadros))
     (let ((gadget (or gadget-arg (car (frame-current-panes frame)))))
+      ;;(log:info "~S" gadget)
       (labels ((dibuja-portada ()
-                 (let ((desp (/ (- (bounding-rectangle-width (sheet-region gadget)) (image-width portada)) 2.0)))
+                 (let* ((ancho-portada (pattern-width portada))
+                        (alto-portada (pattern-height portada))
+                        (desp (/ (- (bounding-rectangle-width (sheet-region gadget)) ancho-portada) 2.0)))
                    (with-translation (gadget desp desp)
-                     (draw-image* gadget portada 0 0)
+                     (draw-pattern* gadget portada 0 0)
                      (let ((cadena "mc-wolf3d"))
                        (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-normal*)
                          (draw-text* gadget cadena
-                                     (- (image-width portada) t-ancho 12)
-                                     (- (image-height portada) t-alto 96)
+                                     (- ancho-portada t-ancho 12)
+                                     (- alto-portada t-alto 96)
                                      :text-style *tipo-normal*)))
                      (let ((cadena "Por José M. Ronquillo Rivera"))
                        (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-titulos*)
                          (draw-text* gadget cadena
-                                     (- (image-width portada) t-ancho 12)
-                                     (- (image-height portada) t-alto 32)
+                                     (- ancho-portada t-ancho 12)
+                                     (- alto-portada t-alto 32)
                                      :text-style *tipo-titulos*)))
                      (let ((cadena "Arte por Alexis Ruíz Martínez"))
                        (multiple-value-bind (t-ancho t-alto) (text-size gadget cadena :text-style *tipo-titulos*)
                          (draw-text* gadget cadena
-                                     (- (image-width portada) t-ancho 12)
-                                     (- (image-height portada) t-alto)
+                                     (- ancho-portada t-ancho 12)
+                                     (- alto-portada t-alto)
                                      :text-style *tipo-titulos*)))))
                  (dibuja-dialogo escenario gadget '("" "  Presiona la tecla 'n' para comenzar el juego;"
                                                     "" "  'q' para salir del juego;"
@@ -66,17 +70,16 @@
                                                'single-float))
                  (let* ((ancho-gadget (bounding-rectangle-width (sheet-region gadget)))
                         (alto-gadget (bounding-rectangle-height (sheet-region gadget)))
-                        (desp (/ (- ancho-gadget *ancho*) 2.0))
+                        ;;(desp (/ (- ancho-gadget *ancho*) 2.0))
                         (cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
                    (declare (type fixnum ancho-gadget alto-gadget))
-                   (draw-design gadget (make-image-design (imagen escenario)) :x desp :y desp)
-                   (draw-rectangle* gadget 0 1003 (the fixnum (+ 40 (the fixnum
-                                                                         (text-size gadget cadena :text-style *tipo-normal*))))
-                                    900 :ink +black+)
-                   (draw-text* gadget cadena 10 990 :text-style *tipo-normal* :ink +turquoise+)
-                   (dibuja-mapa escenario gadget
-                                (- ancho-gadget 248)
-                                (- alto-gadget 256) 248))))
+                   (draw-design gadget (imagen escenario))
+                   (draw-rectangle* gadget
+                                    0 1003
+                                    (the fixnum (+ 40 (the fixnum (text-size gadget cadena :text-style *tipo-normal*)))) 900
+                                    :ink +black+)
+                   (dibuja-mapa escenario gadget (- ancho-gadget 248) (- alto-gadget 256) 248)
+                   (draw-text* gadget cadena 10 990 :text-style *tipo-normal* :ink +turquoise+))))
         (if (jugando frame)
             (dibuja-juego)
             (dibuja-portada))))))
@@ -95,17 +98,14 @@
   (escenario:inicia-hilos)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d)
-        (escenario *frame*) (crea-escenario (or mapa (car *mapas*))
+        (escenario *frame*) (crea-escenario (car (frame-current-panes *frame*))
+                                            (or mapa (car *mapas*))
                                             *sprites-maestros*
                                             (or sprites (car *sprites*))
                                             (merge-pathnames #P"sonidos/" *ruta-del-sistema*)
                                             (merge-pathnames #P"pics/" *ruta-del-sistema*)))
-  (log:info (escenario *frame*))
   (bt:make-thread (lambda ()
                     (run-frame-top-level *frame*)
-                    (when (jugando *frame*)
-                      (clim-sys:destroy-process (jugando *frame*))
-                      (setf (jugando *frame*) nil))
                     (setf *frame* nil)
                     (escenario:termina-hilos))
                   :name "mc-wolf3d-main"))
@@ -127,7 +127,12 @@
     (redibuja-cuadro *frame*)))
 
 (define-mc-wolf3d-command (com-salir :name "salir") ()
-  (frame-exit *application-frame*))
+  (let ((lienzo (car (frame-current-panes *frame*))))
+    (clim-sys:with-lock-held ((bloqueo-cuadro lienzo))
+      (when (jugando *frame*)
+        (clim-sys:destroy-process (jugando *frame*))
+        (setf (jugando *frame*) nil))
+      (frame-exit *application-frame*))))
 
 (defun juega (frame)
   (clim-sys:make-process
@@ -135,28 +140,28 @@
      (declare (optimize (speed 3) (safety 0) (debug 0)))
      (with-slots (modo-rot modo-mov escenario mezclador) frame
        (loop while t
-          with sonidos of-type (simple-array t) = (sonidos escenario)
-          and lienzo = (car (frame-current-panes frame))
-          if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
-          if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
-          do (when sonidos
-               (loop for snd across (subseq sonidos 1)
-                  if (and (not (mixalot:streamer-paused-p snd mezclador))
-                          (member snd (mixalot:mixer-stream-list mezclador))
-                          (< (the fixnum (- (the fixnum (mixalot:streamer-length snd mezclador))
-                                            (the fixnum (mixalot:streamer-position snd mezclador))))
-                             5512))
-                  do ;;(log:info "pausa: ~S" snd)
-                    (mixalot:streamer-pause snd mezclador)
-                    (mixalot:streamer-seek snd mezclador 0))
-               (when (< (- (the fixnum (mixalot:streamer-length (aref sonidos 0) mezclador))
-                           (the fixnum (mixalot:streamer-position (aref sonidos 0) mezclador)))
-                        5512)
-                 (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
-            (escenario-revisa-eventos escenario lienzo mezclador)
-          if (or (escenario-realiza-personajes escenario) modo-rot modo-mov) do
-            (redibuja-cuadro frame lienzo)
-          else do (sleep 0.005))))))
+             with sonidos of-type (simple-array t) = (sonidos escenario)
+             and lienzo = (car (frame-current-panes frame))
+             if modo-mov do (mueve escenario (if (eq :adelante modo-mov) 1 -1))
+               if modo-rot do (rota escenario (if (eq :derecha modo-rot) 1 -1))
+                 do (when sonidos
+                      (loop for snd across (subseq sonidos 1)
+                            if (and (not (mixalot:streamer-paused-p snd mezclador))
+                                    (member snd (mixalot:mixer-stream-list mezclador))
+                                    (< (the fixnum (- (the fixnum (mixalot:streamer-length snd mezclador))
+                                                      (the fixnum (mixalot:streamer-position snd mezclador))))
+                                       5512))
+                              do (mixalot:streamer-pause snd mezclador)
+                                 (mixalot:streamer-seek snd mezclador 0))
+                      (when (< (- (the fixnum (mixalot:streamer-length (aref sonidos 0) mezclador))
+                                  (the fixnum (mixalot:streamer-position (aref sonidos 0) mezclador)))
+                               5512)
+                        (mixalot:streamer-seek (aref sonidos 0) mezclador 0)))
+                    (escenario-revisa-eventos escenario lienzo mezclador)
+             if (or (escenario-realiza-personajes escenario) modo-rot modo-mov) do
+               (clim-sys:with-lock-held ((bloqueo-cuadro lienzo))
+                 (redibuja-cuadro frame lienzo))
+             end do (clim-sys:process-yield))))))
 
 (define-mc-wolf3d-command (com-nuevo :name "Nuevo juego")
     ()
