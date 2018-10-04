@@ -31,7 +31,6 @@
   (with-slots (escenario tiempo tiempo-anterior periodo-cuadros portada) frame
     (declare (type single-float periodo-cuadros))
     (let ((gadget (or gadget-arg (car (frame-current-panes frame)))))
-      ;;(log:info "~S" gadget)
       (labels ((dibuja-portada ()
                  (let* ((ancho-portada (pattern-width portada))
                         (alto-portada (pattern-height portada))
@@ -98,8 +97,7 @@
   (escenario:inicia-hilos)
   (unless *tipografia* (carga-tipografia))
   (setf *frame* (make-application-frame 'mc-wolf3d)
-        (escenario *frame*) (crea-escenario (car (frame-current-panes *frame*))
-                                            (or mapa (car *mapas*))
+        (escenario *frame*) (crea-escenario (or mapa (car *mapas*))
                                             *sprites-maestros*
                                             (or sprites (car *sprites*))
                                             (merge-pathnames #P"sonidos/" *ruta-del-sistema*)

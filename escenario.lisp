@@ -55,7 +55,7 @@
                                                                                                    (*tex-ancho-fix* *tex-alto-fix*)) *))
    (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
 
-(defun crea-escenario (gadget mapa sprites-maestros sprites
+(defun crea-escenario (mapa sprites-maestros sprites
                        ruta-sonidos &optional (ruta-texturas #P"./pics/"))
   (let* ((tabla-sprites (carga-sprites-maestros sprites-maestros))
          (arreglo-sprites (crea-sprites tabla-sprites sprites))
@@ -63,17 +63,13 @@
                                  (lambda (s)
                                    (member (sprite-nombre (sprite-maestro s))
                                            *personajes* :key #'car)))
-                                arreglo-sprites))
-         ;;(imagen (allocate-pixmap gadget (floor *ancho*) *alto-fix*))
-         )
-    ;;(setf (slot-value imagen 'medium) (make-medium (port gadget) imagen))
+                                arreglo-sprites)))
     (make-instance 'escenario
                    :texturas (carga-texturas ruta-texturas)
                    :mapa mapa
                    :sonidos (carga-sonidos ruta-sonidos)
                    :sprites-maestros tabla-sprites
                    :sprites arreglo-sprites
-                   ;;:imagen imagen
                    :personajes (make-array (length personajes) :element-type 'personaje
                                                                :initial-contents (map 'list
                                                                                       (lambda (s)
