@@ -7,7 +7,6 @@
 (defclass canvas-gadget (climi::never-repaint-background-mixin basic-gadget)
   ((bloqueo-cuadro :accessor bloqueo-cuadro :initform (clim-sys:make-lock "Bloqueo cuadro"))))
 
-
 (define-application-frame mc-wolf3d ()
   ((escenario :initarg :escenario :accessor escenario :initform (make-instance 'escenario) :type escenario)
    (mezclador :initarg :mezclador :accessor mezclador :initform nil)
@@ -69,10 +68,12 @@
                                                'single-float))
                  (let* ((ancho-gadget (bounding-rectangle-width (sheet-region gadget)))
                         (alto-gadget (bounding-rectangle-height (sheet-region gadget)))
-                        ;;(desp (/ (- ancho-gadget *ancho*) 2.0))
+                        (desp (/ (- ancho-gadget *ancho*) 2.0))
                         (cadena (format nil "~5,2F fps" (/ periodo-cuadros))))
                    (declare (type fixnum ancho-gadget alto-gadget))
-                   (draw-design gadget (imagen escenario))
+                   ;;(draw-pattern* gadget (imagen escenario) desp desp)
+                   (draw-design gadget (imagen escenario) :x desp :y desp)
+                   ;;(draw-design gadget (make-rectangle* desp desp (+ desp *ancho-fix* 100 ) (+ desp *alto-fix*)) :ink (imagen escenario))
                    (draw-rectangle* gadget
                                     0 1003
                                     (the fixnum (+ 40 (the fixnum (text-size gadget cadena :text-style *tipo-normal*)))) 900
@@ -85,7 +86,8 @@
 
 (defmethod handle-repaint ((gadget canvas-gadget) region)
   (declare (ignore region))
-  (redibuja-cuadro *frame* gadget))
+  (clim-sys:with-lock-held ((bloqueo-cuadro gadget))
+    (redibuja-cuadro *frame* gadget)))
 
 (defparameter *tipografia* nil)
 (defun carga-tipografia ()
@@ -117,8 +119,10 @@
 
 (define-mc-wolf3d-command (com-terminar-juego :name "terminar-juego") ()
   (when (jugando *frame*)
-    (clim-sys:destroy-process (jugando *frame*))
-    (setf (jugando *frame*) nil)
+    (let ((lienzo (car (frame-current-panes *frame*))))
+      (clim-sys:with-lock-held ((bloqueo-cuadro lienzo))
+        (clim-sys:destroy-process (jugando *frame*))
+        (setf (jugando *frame*) nil)))
     (mixalot:mixer-remove-all-streamers (mezclador *frame*))
     (mixalot:destroy-mixer (mezclador *frame*))
     (setf (mezclador *frame*) nil)
@@ -135,7 +139,7 @@
 (defun juega (frame)
   (clim-sys:make-process
    (lambda ()
-     (declare (optimize (speed 3) (safety 0) (debug 0)))
+     (declare (optimize (speed 3) (safety 1) (debug 1)))
      (with-slots (modo-rot modo-mov escenario mezclador) frame
        (loop while t
              with sonidos of-type (simple-array t) = (sonidos escenario)

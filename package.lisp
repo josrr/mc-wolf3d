@@ -9,6 +9,9 @@
   (:export #:escenario
            #:*ancho*
            #:*alto*
+           #:*ancho-fix*
+           #:*alto*
+           #:*alto-fix*
            #:regenera
            #:dibuja-mapa
            #:dibuja-manos

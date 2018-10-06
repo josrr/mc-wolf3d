@@ -2,8 +2,8 @@
 
 (declaim (type single-float *ancho* *alto* *tex-ancho* *tex-alto*)
          (type fixnum *alto/2* *alto-fix* *ancho-fix* *tex-ancho-fix* *tex-alto-fix*))
-(defparameter *ancho* 1100.0)
-(defparameter *alto* 660.0)
+(defparameter *ancho* 1280.0)
+(defparameter *alto* 760.0)
 (defparameter *tex-ancho* 128.0)
 (defparameter *tex-alto* 128.0)
 (defparameter *tex-ancho-fix* (truncate *tex-ancho*))
@@ -14,7 +14,7 @@
 
 (declaim (inline aproxima-angulo))
 (defun aproxima-angulo (angulo)
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 1) (debug 1))
            (type single-float angulo))
   (let ((fraccion (coerce (/ pi *tex-ancho*) 'single-float)))
     (declare (type single-float fraccion))
@@ -23,7 +23,7 @@
 (defconstant +valmax+ 10000000.0)
 (declaim (inline divseg))
 (defun divseg (x y)
-  (declare (optimize (speed 3) (safety 1))
+  (declare (optimize (speed 3) (safety 1) (debug 1))
            (type single-float x y))
   (if (zerop y)
       10000.0
@@ -46,13 +46,13 @@
                                              :initial-element #x00000FF))
                                         ;(make-image :rgb (floor *ancho*) *alto-fix* :two-dim-array)
            )
-   (manos :accessor manos :initform nil :initarg :manos)
+   (manos :accessor manos :initform nil :initarg :manos :type (simple-array (unsigned-byte 32)))
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
    (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
    (sprites :initform nil :initarg :sprites :accessor sprites :type (simple-array sprite))
    (personajes :initform nil :initarg :personajes :accessor personajes :type (simple-array personaje))
-   (texturas :initarg :texturas :accessor texturas :initform nil :type (simple-array (simple-array (unsigned-byte 32)
-                                                                                                   (*tex-ancho-fix* *tex-alto-fix*)) *))
+   (texturas :initarg :texturas :accessor texturas :initform nil
+             :type (simple-array (simple-array (unsigned-byte 32) (*tex-ancho-fix* *tex-alto-fix*)) *))
    (sonidos :initform nil :initarg :sonidos :accessor sonidos :type (simple-array t))))
 
 (defun crea-escenario (mapa sprites-maestros sprites
@@ -82,7 +82,7 @@
 (defgeneric rota (escenario &optional dir))
 
 (defmethod rota (escenario &optional (dir 1))
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 1))
            (type fixnum dir))
   (with-slots (dirección plano-camara vel-rot) escenario
     (declare (type single-float vel-rot))
@@ -91,7 +91,7 @@
             plano-camara (vxy (m* mat-rot (vxy__ plano-camara)))))))
 
 (defun mueve (escenario &optional (dir 1))
-  (declare (optimize (speed 3) (safety 0))
+  (declare (optimize (speed 3) (safety 1))
            (type fixnum dir))
   (with-slots (mapa posición dirección vel-mov) escenario
     (declare (type single-float vel-mov)
@@ -106,8 +106,7 @@
         (setf posición nueva-posicion)))))
 
 (proclaim '(ftype (function ((simple-array (unsigned-byte 32) *)
-                             keyword
-                             fixnum fixnum fixnum fixnum
+                             keyword fixnum fixnum fixnum fixnum
                              (simple-array (unsigned-byte 32) *) fixnum)
                    null)
             dibuja-linea-vertical))
@@ -117,17 +116,16 @@
   (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array (unsigned-byte 32) *) arreglo)
            (type (or null (simple-array (unsigned-byte 32) *)) textura)
-           (type fixnum largo-linea x y-ini y-fin))
-  (loop for y fixnum from y-ini below y-fin
+           (type fixnum y-ini y-fin largo-linea x))
+  (loop with dy single-float = (* 0.5 (- largo-linea (1- *alto*)))
+        for y fixnum from y-ini below y-fin
         for valor of-type (unsigned-byte 32) = (aref textura
-                                                     (the fixnum
-                                                          (truncate (* *tex-alto* (+ y (* 0.5 (- largo-linea *alto*))))
-                                                                    largo-linea))
+                                                     (the fixnum (truncate (* *tex-alto* (+ y dy)) largo-linea))
                                                      x-tex)
-        do (setf (aref arreglo y x) (if (eq :vertical modo)
-                                        (logior (ash (ash (logand (ash valor -8) #xFEFEFE) -1) 8)
-                                                #xFF)
-                                        valor))))
+        do (setf (aref arreglo y x)
+                 (if (eq :vertical modo)
+                     (logior (ash (ash (logand (ash valor -8) #xFEFEFE) -1) 8) #xFF)
+                     valor))))
 
 (declaim (type (simple-array single-float *) *distancias*))
 (defparameter *distancias* (make-array *alto/2*
@@ -168,7 +166,7 @@
                    (aref textura-techo tex-y tex-x)))))
 
 (defun borra-imagen (arreglo)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
+  (declare (optimize (speed 3) (safety 1) (debug 1))
            (type (simple-array (unsigned-byte 32) (768 1280)) arreglo))
   (loop for y from 0 below (array-dimension arreglo 0)
         do (loop for x from 0 below (array-dimension arreglo 1)
@@ -212,7 +210,7 @@
   (map 'nil #'bt:destroy-thread *hilos*)
   (setf *hilos* nil))
 
-(declaim (inline genera-escenario))
+(declaim (inline genera-escenario dibuja-manos))
 (defun genera-escenario (x-ini x-fin pixels dirección posición plano-camara mapa texturas zbuffer)
   (declare (optimize (speed 3) (safety 0) (debug 0))
            (type single-float x-ini x-fin)
@@ -221,95 +219,94 @@
            (type (simple-array (simple-array (unsigned-byte 32))) texturas)
            (type (simple-array single-float) zbuffer))
   (loop with paso-x fixnum = 0 and paso-y fixnum = 0
-     and lado-dist = (vec2 0 0) and lado keyword = :horizontal
-     for x single-float from x-ini below x-fin by 1.0
-     and mapa-x fixnum = (the fixnum (truncate (vx2 posición)))
-     and mapa-y fixnum = (the fixnum (truncate (vy2 posición)))
-     for camara-x single-float = (1- (/ (* 2.0 x) *ancho*))
-     for rayo-dir = (v+ dirección (v* camara-x plano-camara))
-     for Δ-dist = (vec2 (abs (divseg 1.0 (vx2 rayo-dir)))
-                        (abs (divseg 1.0 (vy2 rayo-dir))))
-     if (minusp (vx2 rayo-dir)) do
-       (setf paso-x -1
-             (vx2 lado-dist) (* (- (vx2 posición) mapa-x) (vx2 Δ-dist)))
-     else do
-       (setf paso-x 1
-             (vx2 lado-dist) (* (- (the fixnum (1+ mapa-x)) (vx2 posición)) (vx2 Δ-dist)))
-     end if (minusp (vy2 rayo-dir)) do
-       (setf paso-y -1
-             (vy2 lado-dist) (* (- (vy2 posición) mapa-y) (vy2 Δ-dist)))
-     else do
-       (setf paso-y 1
-             (vy2 lado-dist) (* (- (the fixnum (1+ mapa-y)) (vy2 posición)) (vy2 Δ-dist)))
-     end
-     do (loop if (< (vx2 lado-dist) (vy2 lado-dist))
-           do (incf (vx2 lado-dist) (vx2 Δ-dist))
-             (incf mapa-x paso-x)
-             (setf lado :horizontal)
-           else do
-             (incf (vy2 lado-dist) (vy2 Δ-dist))
-             (incf mapa-y paso-y)
-             (setf lado :vertical) end
-           while (zerop (aref mapa mapa-x mapa-y)))
-       (let* ((dist-pared-perp (if (eq :horizontal lado)
-                                   (divseg (+ mapa-x (- (vx2 posición)) (/ (- 1 paso-x) 2.0))
-                                           (vx2 rayo-dir))
-                                   (divseg (+ mapa-y (- (vy2 posición)) (/ (- 1 paso-y) 2.0))
-                                           (vy2 rayo-dir))))
-              (pared-x (if (eq :horizontal lado)
-                           (+ (vy2 posición) (* dist-pared-perp (vy2 rayo-dir)))
-                           (+ (vx2 posición) (* dist-pared-perp (vx2 rayo-dir)))))
-              (tex-x (truncate (decf pared-x (the fixnum (truncate pared-x)))
-                               (/ *tex-ancho*)))
-              (largo-linea (truncate (divseg *alto* dist-pared-perp)))
-              (y-fin (let ((tmp (/ (+ *alto* largo-linea) 2.0)))
-                       (declare (type single-float tmp))
-                       (if (> tmp *alto*)
-                           *alto* tmp)))
-              (x-fix (truncate x))
-              (mapa-x-f (coerce mapa-x 'single-float))
-              (mapa-y-f (coerce mapa-y 'single-float)))
-         (declare (type fixnum tex-x largo-linea x-fix)
-                  (type single-float dist-pared-perp pared-x y-fin mapa-x-f mapa-y-f))
-         (when (and (eq :horizontal lado) (plusp (vx2 rayo-dir)))
-           (setf tex-x (- *tex-ancho-fix* tex-x 1)))
-         (when (and (eq :vertical lado) (minusp (vy2 rayo-dir)))
-           (setf tex-x (- *tex-ancho-fix* tex-x 1)))
-         (dibuja-linea-vertical pixels lado x-fix
-                                (let ((tmp (truncate (- *alto* largo-linea) 2)))
-                                  (declare (type fixnum tmp))
-                                  (if (minusp tmp) 0 tmp))
-                                (the fixnum (truncate y-fin))
-                                largo-linea
-                                (aref texturas
-                                      (1- (aref mapa mapa-x mapa-y)))
-                                tex-x)
-         (setf (aref zbuffer x-fix) dist-pared-perp)
-         (dibuja-piso pixels
-                      (vx2 posición) (vy2 posición)
-                      x-fix (the fixnum (truncate y-fin))
-                      dist-pared-perp lado pared-x
-                      (vx2 rayo-dir) (vy2 rayo-dir)
-                      mapa-x-f mapa-y-f
-                      (aref texturas 3)
-                      (aref texturas 3)
-                      (aref texturas 3)))))
+        and lado-dist = (vec2 0 0) and lado keyword = :horizontal
+        for x single-float from x-ini below x-fin by 1.0
+        and mapa-x fixnum = (the fixnum (truncate (vx2 posición)))
+        and mapa-y fixnum = (the fixnum (truncate (vy2 posición)))
+        for camara-x single-float = (1- (/ (* 2.0 x) *ancho*))
+        for rayo-dir = (v+ dirección (v* camara-x plano-camara))
+        for Δ-dist = (vec2 (abs (divseg 1.0 (vx2 rayo-dir)))
+                           (abs (divseg 1.0 (vy2 rayo-dir))))
+        if (minusp (vx2 rayo-dir)) do
+          (setf paso-x -1
+                (vx2 lado-dist) (* (- (vx2 posición) mapa-x) (vx2 Δ-dist)))
+        else do
+          (setf paso-x 1
+                (vx2 lado-dist) (* (- (the fixnum (1+ mapa-x)) (vx2 posición)) (vx2 Δ-dist)))
+        end if (minusp (vy2 rayo-dir)) do
+          (setf paso-y -1
+                (vy2 lado-dist) (* (- (vy2 posición) mapa-y) (vy2 Δ-dist)))
+        else do
+          (setf paso-y 1
+                (vy2 lado-dist) (* (- (the fixnum (1+ mapa-y)) (vy2 posición)) (vy2 Δ-dist)))
+        end
+        do (loop if (< (vx2 lado-dist) (vy2 lado-dist))
+                   do (incf (vx2 lado-dist) (vx2 Δ-dist))
+                      (incf mapa-x paso-x)
+                      (setf lado :horizontal)
+                 else do
+                   (incf (vy2 lado-dist) (vy2 Δ-dist))
+                   (incf mapa-y paso-y)
+                   (setf lado :vertical) end
+                 while (zerop (aref mapa mapa-x mapa-y)))
+           (let* ((dist-pared-perp (if (eq :horizontal lado)
+                                       (divseg (+ mapa-x (- (vx2 posición)) (/ (- 1 paso-x) 2.0))
+                                               (vx2 rayo-dir))
+                                       (divseg (+ mapa-y (- (vy2 posición)) (/ (- 1 paso-y) 2.0))
+                                               (vy2 rayo-dir))))
+                  (pared-x (if (eq :horizontal lado)
+                               (+ (vy2 posición) (* dist-pared-perp (vy2 rayo-dir)))
+                               (+ (vx2 posición) (* dist-pared-perp (vx2 rayo-dir)))))
+                  (tex-x (truncate (decf pared-x (the fixnum (truncate pared-x)))
+                                   (/ *tex-ancho*)))
+                  (largo-linea (truncate (divseg *alto* dist-pared-perp)))
+                  (y-fin (let ((tmp (/ (+ *alto* largo-linea) 2.0)))
+                           (declare (type single-float tmp))
+                           (if (> tmp *alto*)
+                               *alto* tmp)))
+                  (x-fix (truncate x))
+                  (mapa-x-f (coerce mapa-x 'single-float))
+                  (mapa-y-f (coerce mapa-y 'single-float)))
+             (declare (type fixnum tex-x largo-linea x-fix)
+                      (type single-float dist-pared-perp pared-x y-fin mapa-x-f mapa-y-f))
+             (when (and (eq :horizontal lado) (plusp (vx2 rayo-dir)))
+               (setf tex-x (- *tex-ancho-fix* tex-x 1)))
+             (when (and (eq :vertical lado) (minusp (vy2 rayo-dir)))
+               (setf tex-x (- *tex-ancho-fix* tex-x 1)))
+             (dibuja-linea-vertical pixels lado x-fix
+                                    (let ((tmp (truncate (- *alto* largo-linea) 2.0)))
+                                      (declare (type fixnum tmp))
+                                      (if (minusp tmp) 0 tmp))
+                                    (the fixnum (truncate y-fin))
+                                    largo-linea
+                                    (aref texturas (1- (aref mapa mapa-x mapa-y)))
+                                    tex-x)
+             (setf (aref zbuffer x-fix) dist-pared-perp)
+             (dibuja-piso pixels
+                          (vx2 posición) (vy2 posición)
+                          x-fix (the fixnum (truncate y-fin))
+                          dist-pared-perp lado pared-x
+                          (vx2 rayo-dir) (vy2 rayo-dir)
+                          mapa-x-f mapa-y-f
+                          (aref texturas 3)
+                          (aref texturas 3)
+                          (aref texturas 3)))))
 
 (defun dibuja-manos (manos pixels x y)
   (declare (optimize (speed 3) (safety 0) (debug 0))
-           (type fixnum x y )
+           (type fixnum x y)
            (type (simple-array (unsigned-byte 32) *) manos pixels))
   (loop for j fixnum from 0 below (array-dimension manos 0) do
     (loop for i fixnum from 0 below (array-dimension manos 1)
           for color = (aref manos j i)
-          if (> color #xFF) do
+          if (/= color #xFF) do
             (setf (aref pixels (+ y j) (+ x i))
                   color))))
 
 (defgeneric regenera (escenario))
 
 (defmethod regenera ((escenario escenario))
-  (declare (optimize (speed 3) (safety 0) (debug 0)))
+  (declare (optimize (speed 3) (safety 1) (debug 1)))
   (with-slots (imagen ancho alto dirección posición pane mapa
                manos plano-camara sprites texturas zbuffer)
       escenario
@@ -341,10 +338,7 @@
       (bt:with-lock-held (*bloqueo-fin*)
         (loop until (every #'null *tareas*)
               do (bt:condition-wait *cond-fin* *bloqueo-fin*)))
-      (dibuja-manos manos pixels
-                    (truncate (- ancho (array-dimension manos 1)) 2)
-                    (- (truncate alto)
-                       (array-dimension manos 0))))))
+      (dibuja-manos manos pixels (truncate (- ancho (array-dimension manos 1)) 2) (- (truncate alto) (array-dimension manos 0))))))
 
 (defclass accion ()
   ((pars :initarg :pars :accessor accion-pars)

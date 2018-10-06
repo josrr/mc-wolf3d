@@ -51,7 +51,7 @@
            :accessor sprite-nombre)
    (texturas :initform #(0) :type (simple-array fixnum)
              :accessor sprite-texturas :initarg :texturas)
-   (fronteras :initform  #((0 0 127 127)) :type (simple-array (simple-array fixnum (4)))
+   (fronteras :initform  #(#(0 0 127 127)) :type (simple-vector)
               :accessor sprite-fronteras :initarg :fronteras)
    (eventos :initform nil
             :accessor sprite-eventos :initarg :eventos)))
@@ -99,10 +99,10 @@
 
 (declaim (inline sprites-ordena))
 (defun sprites-ordena (posición sprites)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
+  (declare (optimize (speed 3) (safety 1) (debug 1))
            (type (simple-array sprite) sprites))
   (sort sprites #'> :key (lambda (s)
-                           (declare (optimize (speed 3) (safety 0) (debug 0)))
+                           (declare (optimize (speed 3) (safety 1) (debug 1)))
                            (let ((x (- (vx2 posición) (the single-float (sprite-x s))))
                                  (y (- (vy2 posición) (the single-float (sprite-y s)))))
                              (declare (type single-float x y))
@@ -110,7 +110,7 @@
 
 (defun sprites-dibuja (pixels x-inicial ancho-franja ancho alto pos-x pos-y
                        plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
-  (declare (optimize (speed 3) (safety 0) (debug 0))
+  (declare (optimize (speed 3) (safety 1) (debug 1))
            (type (simple-array (unsigned-byte 32) *) pixels)
            (type (simple-array sprite) sprites)
            (type (simple-array single-float) zbuffer)
@@ -122,7 +122,7 @@
     (declare (type single-float inv-det alto/2))
     (labels ((dibuja (trans-x trans-y idx-textura sprite-texturas sprite-fronteras)
                (declare (type (simple-array fixnum) sprite-texturas)
-                        (type (simple-array (simple-array fixnum (4))) sprite-fronteras))
+                        (type (simple-vector) sprite-fronteras))
                (let* ((sprite-screen-x (* (/ ancho 2.0) (1+ (divseg trans-x trans-y))))
                       (sprite-ancho (abs (divseg alto trans-y)))
                       (sprite-ancho/2 (/ sprite-ancho 2.0))
@@ -132,7 +132,7 @@
                       (frontera (aref sprite-fronteras idx-textura)))
                  (declare (type single-float sprite-screen-x sprite-ancho
                                 sprite-ancho/2 y-ini y-fin prop-ancho)
-                          (type (simple-array fixnum (4)) frontera))
+                          (type (simple-vector 4) frontera))
                  (loop for x single-float from x-inicial below (+ x-inicial ancho-franja)
                        for x-fix fixnum = (truncate x)
                        if (< trans-y (aref zbuffer x-fix))
@@ -165,7 +165,7 @@
             for trans-x single-float = (* inv-det (- (* dir-y s-x) (* dir-x s-y)))
             and trans-y single-float = (* inv-det (- (* plcam-x s-y) (* plcam-y s-x)))
             and angulo = (atan s-y s-x)
-            and sprite-fronteras of-type (simple-array *) = (sprite-fronteras (sprite-maestro s))
+            and sprite-fronteras of-type (simple-vector) = (sprite-fronteras (sprite-maestro s))
             if (plusp trans-y)
               do (dibuja trans-x trans-y
                          (if (and sprite-fronteras (> (length sprite-fronteras) 1))
