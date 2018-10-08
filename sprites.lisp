@@ -110,7 +110,7 @@
 
 (defun sprites-dibuja (pixels x-inicial ancho-franja ancho alto pos-x pos-y
                        plcam-x plcam-y dir-x dir-y sprites zbuffer texturas)
-  (declare (optimize (speed 3) (safety 1) (debug 1))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type (simple-array (unsigned-byte 32) *) pixels)
            (type (simple-array sprite) sprites)
            (type (simple-array single-float) zbuffer)

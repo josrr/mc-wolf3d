@@ -14,7 +14,7 @@
 
 (declaim (inline aproxima-angulo))
 (defun aproxima-angulo (angulo)
-  (declare (optimize (speed 3) (safety 1) (debug 1))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type single-float angulo))
   (let ((fraccion (coerce (/ pi *tex-ancho*) 'single-float)))
     (declare (type single-float fraccion))
@@ -23,7 +23,7 @@
 (defconstant +valmax+ 10000000.0)
 (declaim (inline divseg))
 (defun divseg (x y)
-  (declare (optimize (speed 3) (safety 1) (debug 1))
+  (declare (optimize (speed 3) (safety 0) (debug 0))
            (type single-float x y))
   (if (zerop y)
       10000.0
@@ -91,7 +91,7 @@
             plano-camara (vxy (m* mat-rot (vxy__ plano-camara)))))))
 
 (defun mueve (escenario &optional (dir 1))
-  (declare (optimize (speed 3) (safety 1))
+  (declare (optimize (speed 3) (safety 0))
            (type fixnum dir))
   (with-slots (mapa posición dirección vel-mov) escenario
     (declare (type single-float vel-mov)
@@ -292,12 +292,12 @@
                           (aref texturas 3)
                           (aref texturas 3)))))
 
-(defun dibuja-manos (manos pixels x y)
+(defun dibuja-manos (manos pixels x y ancho-manos alto-manos)
   (declare (optimize (speed 3) (safety 0) (debug 0))
-           (type fixnum x y)
+           (type fixnum x y ancho-manos alto-manos)
            (type (simple-array (unsigned-byte 32) *) manos pixels))
-  (loop for j fixnum from 0 below (array-dimension manos 0) do
-    (loop for i fixnum from 0 below (array-dimension manos 1)
+  (loop for j fixnum from 0 below alto-manos do
+    (loop for i fixnum from 0 below ancho-manos
           for color = (aref manos j i)
           if (/= color #xFF) do
             (setf (aref pixels (+ y j) (+ x i))
@@ -306,7 +306,7 @@
 (defgeneric regenera (escenario))
 
 (defmethod regenera ((escenario escenario))
-  (declare (optimize (speed 3) (safety 1) (debug 1)))
+  (declare (optimize (speed 3) (safety 0) (debug 0)))
   (with-slots (imagen ancho alto dirección posición pane mapa
                manos plano-camara sprites texturas zbuffer)
       escenario
@@ -338,7 +338,13 @@
       (bt:with-lock-held (*bloqueo-fin*)
         (loop until (every #'null *tareas*)
               do (bt:condition-wait *cond-fin* *bloqueo-fin*)))
-      (dibuja-manos manos pixels (truncate (- ancho (array-dimension manos 1)) 2) (- (truncate alto) (array-dimension manos 0))))))
+      (let ((ancho-manos (array-dimension manos 1))
+            (alto-manos (array-dimension manos 0)))
+        (declare (type fixnum ancho-manos alto-manos))
+        (dibuja-manos manos pixels
+                      (the fixnum (truncate (- ancho ancho-manos) 2))
+                      (- (the fixnum (truncate alto)) alto-manos)
+                      ancho-manos alto-manos)))))
 
 (defclass accion ()
   ((pars :initarg :pars :accessor accion-pars)
