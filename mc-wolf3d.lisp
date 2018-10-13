@@ -4,7 +4,7 @@
 (defparameter *frame* nil)
 (defparameter *ruta-del-sistema* (asdf:component-pathname (asdf:find-system 'mc-wolf3d)))
 
-(defclass canvas-gadget (climi::never-repaint-background-mixin basic-gadget)
+(defclass canvas-gadget (clime:never-repaint-background-mixin basic-gadget)
   ((bloqueo-cuadro :accessor bloqueo-cuadro :initform (clim-sys:make-lock "Bloqueo cuadro"))))
 
 (define-application-frame mc-wolf3d ()
@@ -58,7 +58,7 @@
                                                     "" "  'q' para salir del juego;"
                                                     "" "  'arriba', 'abajo', 'izquierda' y 'derecha' para moverte.")))
                (dibuja-juego ()
-                 (declare (optimize (speed 3)))
+                 (declare (optimize (speed 3) (safety 1)))
                  (regenera escenario)
                  (setf tiempo-anterior tiempo
                        tiempo (local-time:now)

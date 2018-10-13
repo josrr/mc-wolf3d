@@ -76,5 +76,6 @@
                         (loop for p across personajes
                               for s = (personaje-sprite p) do
                                 (draw-circle* pane
-                                              (* (sprite-x s) Δx) (- (* (sprite-y s) Δx))
+                                              (* (the single-float (sprite-x s)) Δx)
+                                              (- (* (the single-float (sprite-y s)) Δx))
                                               (/ Δx 2) :ink +red+))))))))

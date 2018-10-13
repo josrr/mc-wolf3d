@@ -36,16 +36,11 @@
    (dirección :initarg :dirección :accessor dirección :initform (vec2 -1 0))
    (plano-camara :initarg :plano-camara :accessor plano-camara :initform (vec2 0 0.66))
    (rayos-pares :accessor rayos-pares :initform t :type boolean)
-   (vel-mov :accessor vel-mov :initform 0.15 :type single-float)
-   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 3.0 (/ pi 128.0)) 'single-float)) :type single-float)
+   (vel-mov :accessor vel-mov :initform 0.2 :type single-float)
+   (vel-rot :accessor vel-rot :initform (aproxima-angulo (coerce (* 1.0 (/ pi 32.0)) 'single-float)) :type single-float)
    (zbuffer :accessor zbuffer :initform (make-array (truncate *ancho*) :element-type 'single-float :initial-element 0.0))
    (imagen :accessor imagen :initarg :imagen :initform
-           (make-instance 'climi::%rgba-pattern
-                          :array (make-array (list *alto-fix* *ancho-fix*)
-                                             :element-type '(unsigned-byte 32)
-                                             :initial-element #x00000FF))
-                                        ;(make-image :rgb (floor *ancho*) *alto-fix* :two-dim-array)
-           )
+           (make-image *ancho-fix* *alto-fix*))
    (manos :accessor manos :initform nil :initarg :manos :type (simple-array (unsigned-byte 32)))
    (mapa :initarg :mapa :accessor mapa :initform nil :type (simple-array fixnum (24 24)))
    (sprites-maestros :initform (make-hash-table) :initarg :sprites-maestros :accessor sprites-maestros :type hash-table)
@@ -315,7 +310,7 @@
              (type (simple-array single-float *) zbuffer)
              (type (simple-array (simple-array (unsigned-byte 32) *) *) texturas))
     (sprites-ordena posición sprites)
-    (let ((pixels (climi::pattern-array imagen)))
+    (let ((pixels (clime:pattern-array imagen)))
       (declare (type (simple-array (unsigned-byte 32) *) pixels))
       (loop with paso single-float = (/ ancho (the fixnum *num-hilos*))
             for x single-float from 0.0 below ancho by paso
