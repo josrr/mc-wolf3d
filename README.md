@@ -26,11 +26,11 @@ Little raycasting game engine.
 
 Press the n key to start the game
 
-### Code by José Miguel Ronquillo Rivera <jose@rufina.link>
+### Code by José Miguel R. R. <jose@rufina.link>
 ### Art by Alexis Ruiz Martínez
 
 ## License
-Copyright © 2018 [José Miguel Ronquillo Rivera](mailto:<jose@rufina.link>)
+Copyright © 2018 [José Miguel R. R.](mailto:<jose@rufina.link>)
 
 GNU General Public License version 3.
 
